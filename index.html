@@ -1,1 +1,53 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Squiggly Note — a cheerful little place for your thoughts.">
+  <title>Squiggly Note</title>
+  <style>
+    :root { --ink:#2c2251; --paper:#fffdf6; --purple:#7357ee; --pink:#ff8ca3; --yellow:#ffd966; --line:#e8e1f7; --soft:#f5f0ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--soft); font-family:"Trebuchet MS",system-ui,sans-serif; }
+    body::before,body::after { content:""; position:fixed; z-index:-1; width:260px; height:260px; border-radius:50%; opacity:.7; }
+    body::before { top:-95px; left:-80px; background:#ffd9e1; } body::after { right:-95px; bottom:-95px; background:#dcd2ff; }
+    .wrap { width:min(940px,calc(100% - 32px)); margin:auto; padding:38px 0 56px; }
+    header,.tools { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { display:flex; gap:10px; align-items:center; font-size:1.35rem; font-weight:800; letter-spacing:-.04em; }
+    .theme { padding:9px 13px; border:0; border-radius:99px; cursor:pointer; color:var(--ink); background:white; font:inherit; box-shadow:0 3px 12px rgba(55,37,110,.08); }
+    .hero { max-width:620px; margin:30px auto; text-align:center; } h1 { margin:0; font-size:clamp(2.35rem,7vw,4.7rem); line-height:.98; letter-spacing:-.08em; }
+    h1 em { color:var(--purple); font-style:normal; } .hero p { margin:22px 0 0; color:#645a7d; font-size:1.07rem; line-height:1.6; }
+    .note { position:relative; overflow:hidden; padding:clamp(24px,5vw,52px); border-radius:9px 18px 15px 12px; background:var(--paper); box-shadow:0 18px 45px rgba(60,39,116,.16); }
+    .note::before { content:""; position:absolute; top:0; bottom:0; left:33px; width:2px; background:#ffd8df; } .note-inner { position:relative; margin-left:18px; }
+    [contenteditable] { outline:none; } .note-title { margin:0 0 18px; font:700 clamp(1.55rem,4vw,2.25rem)/1.2 Georgia,serif; }
+    .note-body { min-height:218px; color:#40365d; font:1.13rem/36px Georgia,serif; background:repeating-linear-gradient(to bottom,transparent 0,transparent 34px,var(--line) 35px,transparent 36px); }
+    .note-body:empty::before { content:attr(data-placeholder); color:#aaa1bb; } .tools { margin-top:32px; } .save { color:#756b8a; font-size:.9rem; }
+    .new-note { padding:11px 17px; border:0; border-radius:10px 13px 9px 12px; cursor:pointer; color:var(--ink); background:var(--yellow); box-shadow:3px 4px 0 #d6b740; font:800 1rem "Trebuchet MS",sans-serif; }
+    footer { margin-top:30px; color:#786e91; text-align:center; font-size:.88rem; }
+    body.night { --ink:#f3ecff; --paper:#31294d; --line:#43375f; --soft:#1e1733; } body.night .hero p,body.night .save,body.night footer { color:#c5b8dc; } body.night .note-body { color:#eee7f8; }
+    @media (max-width:560px) { .wrap { width:min(100% - 22px,940px); padding-top:20px; } .note { padding:25px 18px 28px; } .note::before { left:20px; } .note-inner { margin-left:17px; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header><div class="brand">〰️ Squiggly Note</div><button class="theme" id="themeToggle">🌙 Cozy mode</button></header>
+    <section class="hero"><h1>Let your thoughts <em>wander.</em></h1><p>A small, happy corner for ideas, lists, and wonderfully unfinished things.</p></section>
+    <section class="note" aria-label="Your note"><div class="note-inner">
+      <h2 class="note-title" id="noteTitle" contenteditable="true">A little note to myself</h2>
+      <div class="note-body" id="noteBody" contenteditable="true" data-placeholder="Start writing something squiggly…">Today I want to remember that tiny progress still counts. Especially the kind that happens with tea nearby.</div>
+      <div class="tools"><span class="save" id="saveStatus">Saved in this browser</span><button class="new-note" id="newNote">New blank note ✦</button></div>
+    </div></section>
+    <footer>Made for little sparks of thought.</footer>
+  </main>
+  <script>
+    const title=document.querySelector('#noteTitle'), body=document.querySelector('#noteBody'), status=document.querySelector('#saveStatus'), toggle=document.querySelector('#themeToggle');
+    title.textContent=localStorage.getItem('squiggly-title')||title.textContent; body.innerHTML=localStorage.getItem('squiggly-body')||body.innerHTML;
+    function save(){ localStorage.setItem('squiggly-title',title.textContent); localStorage.setItem('squiggly-body',body.innerHTML); status.textContent='Saved just now'; }
+    title.oninput=body.oninput=save;
+    document.querySelector('#newNote').onclick=()=>{ title.textContent='Untitled thought'; body.innerHTML=''; body.focus(); save(); };
+    if(localStorage.getItem('squiggly-theme')==='night') document.body.classList.add('night');
+    function setTheme(){ const night=document.body.classList.toggle('night'); localStorage.setItem('squiggly-theme',night?'night':'day'); toggle.textContent=night?'☀️ Sunny mode':'🌙 Cozy mode'; }
+    toggle.textContent=document.body.classList.contains('night')?'☀️ Sunny mode':'🌙 Cozy mode'; toggle.onclick=setTheme;
+  </script>
+</body>
+</html>
