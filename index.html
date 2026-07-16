@@ -366,7 +366,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
       state.notes.forEach((note, index) => {
         const row = document.createElement('button');
         row.className = 'tab' + (note.id === state.activeId ? ' active' : '');
-        row.style.outline = noteSelection.has(note.id) ? '2px solid var(--ink)' : '';
+row.style.background = noteSelection.has(note.id) ? 'var(--soft)' : ''; row.style.boxShadow = noteSelection.has(note.id) ? 'inset 3px 0 var(--ink)' : '';
         row.textContent = note.title || 'Untitled note';
         row.onclick = event => { applyRange(state.notes, noteSelection, note.id, event, { get value() { return noteAnchor; }, set value(v) { noteAnchor = v; } }); state.activeId = note.id; save(); render(); };
         tabs.append(row);
@@ -379,7 +379,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
       recordings.forEach((recording, index) => {
         const row = document.createElement('button');
         row.className = 'tab';
-        row.style.outline = audioSelection.has(recording.id) ? '2px solid var(--ink)' : '';
+row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; row.style.boxShadow = audioSelection.has(recording.id) ? 'inset 3px 0 var(--ink)' : '';
         row.textContent = recording.name + ' · ' + new Date(recording.created).toLocaleString();
         row.onclick = event => { applyRange(recordings, audioSelection, recording.id, event, { get value() { return audioAnchor; }, set value(v) { audioAnchor = v; } }); render(); };
         tabs.append(row);
@@ -504,7 +504,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
       if (!file) return;
       const card = document.createElement('div');
       card.style.cssText = 'display:grid;gap:7px;padding:10px;margin:5px 0;border:1px solid var(--line);border-radius:9px;background:var(--paper)';
-      selectionButton.style.cssText = 'padding:4px 0;text-align:left;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const selected = selectionButton.style.boxShadow;\n      selectionButton.style.cssText = 'padding:4px 0;text-align:left;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';\n      if (selected) card.style.background = 'var(--soft)';
       selectionButton.textContent = file.name;
       selectionButton.title = 'Click to select. Ctrl/Cmd-click for more. Shift-click for a range.';
       const meta = document.createElement('div');
@@ -533,5 +533,15 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
   };
   render = () => { originalRender(); decorateAudio(); };
   render();
+})();
+</script><script>
+(() => {
+  const rightPanel = document.querySelector('.timeline');
+  rightPanel.style.cssText += ';display:flex;flex-direction:column;gap:10px';
+  rightPanel.querySelector('h2').textContent = 'Edit history';
+  rightPanel.querySelector('#timeline').style.cssText = 'margin:0;max-height:180px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:0 10px';
+  rightPanel.querySelectorAll(':scope > div').forEach(section => {
+    section.style.cssText = 'margin:0;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--soft)';
+  });
 })();
 </script></body></html>
