@@ -671,7 +671,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   const notePicker = document.createElement('input');
   notePicker.type = 'file'; notePicker.accept = '.txt,.md,text/plain'; notePicker.multiple = true; notePicker.hidden = true;
   const audioPicker = document.createElement('input');
-  audioPicker.type = 'file'; audioPicker.accept = 'audio/*,.wav,.mp3,.m4a,.ogg'; audioPicker.multiple = true; audioPicker.hidden = true;
+  audioPicker.type = 'file'; audioPicker.accept = '.wav,audio/wav'; audioPicker.multiple = true; audioPicker.hidden = true;
   document.body.append(notePicker, audioPicker);
   const isAudioPane = () => document.querySelector('.pane-tab.active')?.dataset.pane === 'audio';
   const syncImportButtons = () => {
@@ -706,6 +706,11 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   });
   audioPicker.onchange = async () => {
     const files = Array.from(audioPicker.files);
+    if (files.some(file => !file.name.toLowerCase().endsWith('.wav'))) {
+      showFeedback('WAV files only', 'This transcription setup accepts WAV audio files only.', 'Choose a file ending in .wav, then try the import again.');
+      audioPicker.value = '';
+      return;
+    }
     if (!files.length) return;
     const db = await audioDb;
     const transaction = db.transaction('recordings', 'readwrite');
@@ -717,7 +722,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
       blob: file
     }));
     transaction.oncomplete = () => location.reload();
-    transaction.onerror = () => showFeedback('Could not import audio', 'One or more audio files could not be stored in this browser.', 'Try importing standard audio formats such as WAV, MP3, M4A, or OGG.');
+    transaction.onerror = () => showFeedback('Could not import audio', 'One or more audio files could not be stored in this browser.', 'Choose a valid .wav audio file and try again.');
     audioPicker.value = '';
   };
 })();
