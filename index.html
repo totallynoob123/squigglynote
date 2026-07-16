@@ -25,4 +25,44 @@
     document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
   });
 </script>
+<script>
+  (() => {
+    const style = document.createElement('style');
+    style.textContent = '.small-btn,.ghost-btn,.new-btn,.tool,.primary-btn{border-radius:7px!important;box-shadow:none!important;transition:background .16s ease,border-color .16s ease}.small-btn,.ghost-btn,.tool,.icon-btn{background:transparent!important}.small-btn:hover,.ghost-btn:hover,.tool:hover,.icon-btn:hover{background:var(--soft)!important}.primary-btn{border:1px solid var(--ink)!important;border-radius:7px!important}.new-btn{border:1px solid var(--ink)!important;border-radius:7px!important}.auth-dialog{width:min(420px,calc(100% - 32px));border:1px solid var(--line);border-radius:14px;background:var(--paper);color:var(--ink);padding:24px;box-shadow:0 20px 60px #20212030}.auth-dialog::backdrop{background:#20212055}.auth-dialog h2{margin:0 0 6px;letter-spacing:-.04em}.auth-dialog p{margin:0 0 20px;color:var(--muted);font-size:.9rem;line-height:1.5}.auth-dialog label{display:grid;gap:7px;color:var(--muted);font-size:.78rem}.auth-dialog input{border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:10px}.auth-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}';
+    document.head.append(style);
+    const navOpen = document.querySelector('#navOpen');
+    const signIn = document.createElement('button'); signIn.className = 'small-btn'; signIn.id = 'signInButton'; signIn.textContent = 'Sign in'; navOpen.before(signIn);
+    const topActions = document.querySelector('.top-actions');
+    const accountButton = document.createElement('button'); accountButton.className = 'small-btn'; accountButton.id = 'accountButton'; accountButton.textContent = 'Sign in'; topActions.prepend(accountButton);
+    document.querySelector('.topbar .eyebrow').id = 'workspaceIdentity';
+    document.querySelector('.hero-actions .note').id = 'saveNote';
+    const ACCOUNT_KEY = 'squiggly-account-v1';
+    const account = () => JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null');
+    const updateIdentity = () => {
+      const saved = account();
+      document.querySelector('#signInButton').textContent = saved ? saved.email : 'Sign in';
+      document.querySelector('#accountButton').textContent = saved ? 'Switch account' : 'Sign in';
+      document.querySelector('#workspaceIdentity').textContent = saved ? 'Saved for ' + saved.email : 'Guest workspace — saved on this device';
+      document.querySelector('#saveNote').textContent = saved ? 'Your personal workspace is saved in this browser.' : 'Sign in to keep a personal workspace in this browser.';
+    };
+    const dialog = document.createElement('dialog');
+    dialog.className = 'auth-dialog';
+    dialog.innerHTML = '<form id="authForm"><h2>Sign in</h2><p>Your email is saved on this device to identify this workspace. It does not sync to a server.</p><label>Email address<input id="emailInput" type="email" autocomplete="email" required placeholder="you@example.com"></label><div class="auth-actions"><button class="small-btn" type="button" id="cancelAuth">Cancel</button><button class="primary-btn" type="submit">Continue</button></div></form>';
+    document.body.append(dialog);
+    const openAuth = () => { dialog.querySelector('#emailInput').value = account()?.email || ''; dialog.showModal(); dialog.querySelector('#emailInput').focus(); };
+    document.querySelector('#signInButton').addEventListener('click', openAuth);
+    document.querySelector('#accountButton').addEventListener('click', openAuth);
+    dialog.querySelector('#cancelAuth').addEventListener('click', () => dialog.close());
+    dialog.querySelector('#authForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const email = dialog.querySelector('#emailInput').value.trim().toLowerCase();
+      if (!email || !dialog.querySelector('#emailInput').checkValidity()) return;
+      localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ email }));
+      dialog.close(); updateIdentity();
+      const state = document.querySelector('#saveState');
+      if (state) state.textContent = 'Signed in — saved locally';
+    });
+    updateIdentity();
+  })();
+</script>
 </body></html>
