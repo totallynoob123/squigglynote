@@ -833,4 +833,81 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   handle.addEventListener('pointerup', stopDrag);
   handle.addEventListener('pointercancel', stopDrag);
 })();
+</script><script>
+(() => {
+  const panel = document.querySelector('#notesChatPanel');
+  const input = document.querySelector('#notesChatInput');
+  const send = document.querySelector('#notesChatSend');
+  const messages = document.querySelector('#notesChatMessages');
+  let pendingEdit = null;
+  const message = (text, user = false) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:9px 10px;border-radius:8px;font-size:.86rem;line-height:1.45;white-space:pre-wrap;' + (user ? 'background:var(--ink);color:var(--paper);margin-left:28px' : 'background:var(--soft);margin-right:28px');
+    item.textContent = text; messages.append(item); messages.scrollTop = messages.scrollHeight; return item;
+  };
+  const endpoint = () => {
+    const tunnel = document.querySelector('#apiTunnel').value.trim();
+    if (!tunnel) return '';
+    const url = new URL(tunnel); url.pathname = url.pathname.replace(/\/rewrite\/?$/, '/chat'); return url.toString();
+  };
+  const applyEdit = () => {
+    if (!pendingEdit) return;
+    const note = active();
+    if (typeof pendingEdit.title === 'string' && pendingEdit.title.trim()) note.title = pendingEdit.title.trim();
+    if (typeof pendingEdit.body === 'string') note.body = pendingEdit.body;
+    note.edited = Date.now();
+    note.events.unshift({ kind: 'Edited with Ask notes', time: note.edited });
+    note.events = note.events.slice(0, 8);
+    save('AI edit applied');
+    document.querySelector('#title').value = note.title;
+    document.querySelector('#editor').textContent = note.body;
+    pendingEdit = null;
+    render();
+  };
+  const ask = async () => {
+    const question = input.value.trim();
+    if (!question) return;
+    const apiKey = sessionStorage.getItem('squiggly-openai-key-session');
+    const url = apiKey ? 'https://api.openai.com/v1/chat/completions' : endpoint();
+    if (!url) { showFeedback('Connect an AI service', 'The chatbot needs an OpenAI API key or API tunnel.', 'Add one in the right sidebar before asking or editing notes.'); return; }
+    message(question, true); input.value = '';
+    const waiting = message('Thinking…');
+    const notes = state.notes.map(note => ({ title: note.title, body: note.body })).slice(0, 30);
+    const context = JSON.stringify(notes).slice(0, 30000);
+    try {
+      const response = await fetch(url, apiKey ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({ model: 'gpt-5-mini', messages: [{ role: 'system', content: 'You answer questions about notes and can propose edits to the active note. Return only valid JSON in this exact shape: {"answer":"short response", "update":null or {"title":"optional title", "body":"complete replacement body"}}. Only include update when the user explicitly asks to edit, rewrite, append, or change the active note. Note context: ' + context }, { role: 'user', content: 'Active note: ' + JSON.stringify(active()) + '\nRequest: ' + question }] })
+      } : {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question, notes, activeNote: active(), allowEdit: true })
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      let payload = data;
+      const rawAnswer = data.choices?.[0]?.message?.content || data.answer || data.text || data.result;
+      if (typeof rawAnswer === 'string') {
+        try { payload = JSON.parse(rawAnswer.replace(/^\`\`\`json\s*|\`\`\`$/g, '').trim()); } catch { payload = { answer: rawAnswer }; }
+      }
+      waiting.textContent = payload.answer || 'Done.';
+      const update = payload.update || data.update || data.note;
+      if (update && (typeof update.body === 'string' || typeof update.title === 'string')) {
+        pendingEdit = update;
+        const apply = document.createElement('button');
+        apply.className = 'btn primary';
+        apply.textContent = 'Apply edit to active note';
+        apply.style.marginTop = '8px';
+        apply.onclick = applyEdit;
+        waiting.append(document.createElement('br'), apply);
+      }
+    } catch (error) {
+      waiting.textContent = 'I could not complete that request.';
+      showFeedback('Chatbot request failed', error.message || 'No response was returned.', 'Check your OpenAI key or /chat tunnel route, then try again.');
+    }
+  };
+  send.onclick = ask;
+  input.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); ask(); } };
+})();
 </script></body></html>
