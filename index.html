@@ -642,4 +642,20 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   newButton.style.borderRadius = '8px';
   newButton.style.boxShadow = 'none';
 })();
+</script><script>
+(() => {
+  document.head.insertAdjacentHTML('beforeend', '<style>body.notes-pane .audio-library-row,body.notes-pane #tabs audio{display:none!important}</style>');
+  const tabs = document.querySelector('#tabs');
+  const syncPane = () => {
+    const audioOpen = document.querySelector('.pane-tab.active')?.dataset.pane === 'audio';
+    document.body.classList.toggle('notes-pane', !audioOpen);
+    document.body.classList.toggle('audio-pane', audioOpen);
+    if (!audioOpen) tabs.querySelectorAll('.audio-library-row').forEach(row => row.remove());
+    const transcribe = Array.from(document.querySelectorAll('.notes-actions button')).find(button => button.textContent.includes('Transcribe'));
+    if (transcribe) transcribe.hidden = !audioOpen;
+  };
+  document.querySelectorAll('.pane-tab').forEach(button => button.addEventListener('click', () => setTimeout(syncPane, 0)));
+  new MutationObserver(syncPane).observe(tabs, { childList: true });
+  syncPane();
+})();
 </script></body></html>
