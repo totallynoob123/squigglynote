@@ -958,4 +958,17 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   formatBar.append(color);
   toolbar.insertBefore(formatBar, actionBar);
 })();
+</script><script>
+(() => {
+  const title = document.querySelector('#title');
+  const toolbar = document.querySelector('.toolbar');
+  const editorWrap = document.querySelector('.editor-wrap');
+  title.insertAdjacentElement('afterend', toolbar);
+  toolbar.querySelector('label').hidden = true;
+  toolbar.style.cssText = 'display:flex;align-items:center;gap:9px;margin:12px 0 0;padding:8px 9px;border:1px solid var(--line);border-radius:9px;background:var(--soft);box-shadow:inset 0 1px #fff8';
+  toolbar.querySelector('[aria-label="Text formatting"]').style.flex = '1';
+  toolbar.querySelector('.actions').style.cssText = 'display:flex;align-items:center;gap:7px;margin-left:auto';
+  editorWrap.style.paddingTop = '22px';
+  document.head.insertAdjacentHTML('beforeend', '<style>.toolbar .btn{background:var(--paper)}.toolbar .btn:hover{background:var(--bg)}.toolbar input[type=color]{background:var(--paper)!important}.editor{padding-top:22px}.title{margin-bottom:0}</style>');
+})();
 </script></body></html>
