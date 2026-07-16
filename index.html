@@ -1028,4 +1028,22 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     render();
   }
 })();
+</script><script>
+(() => {
+  const editor = document.querySelector('#editor');
+  const formatBar = document.querySelector('[aria-label="Text formatting"]');
+  const size = document.createElement('select');
+  size.title = 'Font size';
+  size.setAttribute('aria-label', 'Font size');
+  size.style.cssText = 'height:31px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink);padding:0 5px;font-size:.8rem';
+  size.innerHTML = '<option value="" selected>Size</option><option value="2">Small</option><option value="3">Normal</option><option value="4">Large</option><option value="5">XL</option>';
+  size.onchange = () => {
+    if (!size.value) return;
+    editor.focus();
+    document.execCommand('fontSize', false, size.value);
+    edit();
+    size.value = '';
+  };
+  formatBar.insertBefore(size, formatBar.lastElementChild);
+})();
 </script></body></html>
