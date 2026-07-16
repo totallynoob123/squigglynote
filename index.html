@@ -611,4 +611,20 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   document.querySelectorAll('.pane-tab').forEach(button => button.addEventListener('click', () => setTimeout(enhanceAudio, 0)));
   enhanceAudio();
 })();
+</script><script>
+(() => {
+  const header = document.querySelector('.sidebar-head');
+  const switcher = header.querySelector('.choices');
+  const title = header.querySelector('h2');
+  const actions = header.querySelector('.notes-actions');
+  header.style.cssText = 'display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch';
+  title.hidden = true;
+  switcher.style.cssText = 'display:flex;gap:6px;width:100%';
+  switcher.querySelectorAll('button').forEach(button => button.style.cssText = 'flex:1;min-height:38px');
+  actions.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%';
+  Array.from(actions.querySelectorAll('button')).forEach(button => {
+    button.style.cssText += ';width:100%;min-height:38px;justify-content:center';
+    if (button.id === 'newNote' || button.textContent.includes('Transcribe')) button.style.gridColumn = '1 / -1';
+  });
+})();
 </script></body></html>
