@@ -858,7 +858,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     note.events = note.events.slice(0, 8);
     save('AI edit applied');
     document.querySelector('#title').value = note.title;
-    document.querySelector('#editor').textContent = note.body;
+    document.querySelector('#editor').innerHTML = note.body;
     pendingEdit = null;
     render();
   };
@@ -1010,5 +1010,22 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   buttons.forEach(button => button.addEventListener('click', () => setTimeout(update, 0)));
   editor.addEventListener('keyup', update);
   editor.addEventListener('mouseup', update);
+})();
+</script><script>
+(() => {
+  let repaired = false;
+  state.notes.forEach(note => {
+    const probe = document.createElement('textarea');
+    probe.innerHTML = note.body;
+    const decoded = probe.value;
+    if (decoded !== note.body && /<\/?(b|strong|i|em|u|h2|ul|ol|li|blockquote|font|span)\b/i.test(decoded)) {
+      note.body = decoded;
+      repaired = true;
+    }
+  });
+  if (repaired) {
+    save('Formatting restored');
+    render();
+  }
 })();
 </script></body></html>
