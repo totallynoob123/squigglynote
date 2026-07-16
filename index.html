@@ -252,4 +252,58 @@
     });
   })();
 </script>
+<script>
+  (() => {
+    document.querySelector('#landingDelete')?.remove();
+    const style = document.createElement('style');
+    style.textContent = `
+      .settings-gear{display:grid!important;place-items:center;width:38px!important;min-width:38px!important;height:36px!important;padding:0!important;font-size:1rem!important;line-height:1!important}
+      .settings-panel{width:min(380px,calc(100% - 32px));border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:22px;box-shadow:0 22px 60px #0004}
+      .settings-panel::backdrop{background:#0008}.settings-panel h2{margin:0 0 18px;font-size:1.1rem}.settings-panel label{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line);font-size:.9rem}.settings-panel select{color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:7px}.settings-panel .confirm-actions{margin-top:16px}
+      body.text-large .editor{font-size:1.14rem!important}body.text-large .mini-page p{font-size:1.12rem!important}
+    `;
+    document.head.append(style);
+
+    const originalHome = document.querySelector('#homeThemeButton');
+    const homeSettings = originalHome.cloneNode(true);
+    homeSettings.className = 'small-btn settings-gear'; homeSettings.textContent = '⚙'; homeSettings.title = 'Settings'; homeSettings.setAttribute('aria-label', 'Settings');
+    originalHome.replaceWith(homeSettings);
+
+    const originalWorkspace = document.querySelector('#themeButton');
+    const workspaceSettings = originalWorkspace.cloneNode(true);
+    workspaceSettings.className = 'small-btn settings-gear'; workspaceSettings.textContent = '⚙'; workspaceSettings.title = 'Settings'; workspaceSettings.setAttribute('aria-label', 'Settings');
+    originalWorkspace.replaceWith(workspaceSettings);
+    document.querySelector('.landing .nav-links').append(homeSettings);
+    const workspaceActions = document.querySelector('.top-actions');
+    workspaceActions.append(workspaceActions.querySelector('.workspace-delete'));
+    workspaceActions.append(workspaceSettings);
+
+    const panel = document.createElement('dialog');
+    panel.className = 'settings-panel';
+    panel.innerHTML = '<h2>Settings</h2><label>Theme <select id="themeSelect"><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Editor text <select id="textSizeSelect"><option value="regular">Regular</option><option value="large">Large</option></select></label><div class="confirm-actions"><button class="small-btn" id="closeSettings" type="button">Done</button></div>';
+    document.body.append(panel);
+
+    const key = 'squiggly-workspace-v3';
+    const textKey = 'squiggly-text-size-v1';
+    const applyTextSize = value => document.body.classList.toggle('text-large', value === 'large');
+    applyTextSize(localStorage.getItem(textKey) || 'regular');
+    const openSettings = () => {
+      const data = JSON.parse(localStorage.getItem(key) || 'null');
+      panel.querySelector('#themeSelect').value = data?.dark ? 'dark' : 'light';
+      panel.querySelector('#textSizeSelect').value = localStorage.getItem(textKey) || 'regular';
+      panel.showModal();
+    };
+    homeSettings.addEventListener('click', openSettings);
+    workspaceSettings.addEventListener('click', openSettings);
+    panel.querySelector('#themeSelect').addEventListener('change', event => {
+      const data = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!data) return;
+      data.dark = event.target.value === 'dark';
+      localStorage.setItem(key, JSON.stringify(data));
+      location.reload();
+    });
+    panel.querySelector('#textSizeSelect').addEventListener('change', event => { localStorage.setItem(textKey, event.target.value); applyTextSize(event.target.value); });
+    panel.querySelector('#closeSettings').addEventListener('click', () => panel.close());
+  })();
+</script>
 </body></html>
