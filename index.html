@@ -627,4 +627,19 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     if (button.id === 'newNote' || button.textContent.includes('Transcribe')) button.style.gridColumn = '1 / -1';
   });
 })();
+</script><script>
+(() => {
+  const paneButtons = document.querySelectorAll('.pane-tab');
+  const syncPaneColors = () => paneButtons.forEach(button => {
+    button.style.borderRadius = '8px';
+    button.style.borderColor = 'var(--line)';
+    button.style.background = button.classList.contains('active') ? 'var(--ink)' : 'var(--soft)';
+    button.style.color = button.classList.contains('active') ? 'var(--paper)' : 'var(--ink)';
+  });
+  syncPaneColors();
+  paneButtons.forEach(button => button.addEventListener('click', () => setTimeout(syncPaneColors, 0)));
+  const newButton = document.querySelector('#newNote');
+  newButton.style.borderRadius = '8px';
+  newButton.style.boxShadow = 'none';
+})();
 </script></body></html>
