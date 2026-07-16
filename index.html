@@ -32,4 +32,14 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
       openSettings();
     };
   })();
+</script><script>
+  (() => {
+    const darkTheme = document.querySelector('[data-key="theme"][data-value="dark"]');
+    darkTheme.onclick = () => {
+      prefs.theme = 'dark';
+      prefs.background = 'warm';
+      applyPrefs();
+      openSettings();
+    };
+  })();
 </script></body></html>
