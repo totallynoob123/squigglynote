@@ -157,4 +157,59 @@
     syncThemeLabels();
   })();
 </script>
+<script>
+  (() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      :root{--bg:#f2eee6;--paper:#fffdf9;--ink:#111111;--muted:#65625d;--line:#d6d0c6;--soft:#ebe5db;--purple:#111111;--lav:#ebe5db}
+      body.dark{--bg:#111111;--paper:#1a1a1a;--ink:#fafafa;--muted:#b9b9b9;--line:#454545;--soft:#292929;--purple:#fafafa;--lav:#292929}
+      .primary-btn,.new-btn,.tool.primary{background:var(--ink)!important;border-color:var(--ink)!important;color:var(--paper)!important}
+      body.dark .primary-btn,body.dark .new-btn,body.dark .tool.primary{background:var(--ink)!important;border-color:var(--ink)!important;color:#111111!important}
+      .home-theme,#themeButton{width:auto!important;min-width:92px;height:auto!important;padding:8px 11px!important;border-radius:6px!important;font-size:.8rem!important}
+      .delete-btn{border-color:var(--line)!important;color:var(--ink)!important}
+      .delete-btn:hover{border-color:var(--ink)!important;background:var(--soft)!important}
+      .confirm-dialog{width:min(390px,calc(100% - 32px));border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:24px;box-shadow:0 22px 60px #0004}
+      .confirm-dialog::backdrop{background:#0008}.confirm-dialog h2{margin:0 0 8px;font-size:1.15rem}.confirm-dialog p{margin:0;color:var(--muted);line-height:1.5;font-size:.9rem}.confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+    `;
+    document.head.append(style);
+
+    const workspaceTheme = document.querySelector('#themeButton');
+    workspaceTheme.className = 'small-btn';
+    const homeTheme = document.querySelector('#homeThemeButton');
+    const syncTheme = () => {
+      const label = document.body.classList.contains('dark') ? 'Light theme' : 'Dark theme';
+      workspaceTheme.textContent = label;
+      homeTheme.textContent = label;
+    };
+    new MutationObserver(syncTheme).observe(document.body, {attributes:true, attributeFilter:['class']});
+    syncTheme();
+
+    const oldDelete = document.querySelector('#deleteNote');
+    const deleteButton = oldDelete.cloneNode(true);
+    oldDelete.replaceWith(deleteButton);
+    const confirmDialog = document.createElement('dialog');
+    confirmDialog.className = 'confirm-dialog';
+    confirmDialog.innerHTML = '<h2>Delete note?</h2><p id="deleteMessage">This note will be permanently removed.</p><div class="confirm-actions"><button class="small-btn" id="cancelDelete" type="button">Cancel</button><button class="primary-btn" id="confirmDelete" type="button">Delete note</button></div>';
+    document.body.append(confirmDialog);
+    let noteToDelete = null;
+    deleteButton.addEventListener('click', () => {
+      const data = JSON.parse(localStorage.getItem('squiggly-workspace-v3') || 'null');
+      noteToDelete = data?.notes?.find(note => note.id === data.activeId) || null;
+      if (!noteToDelete) return;
+      confirmDialog.querySelector('#deleteMessage').textContent = 'Delete "' + (noteToDelete.title || 'Untitled note') + '"? This cannot be undone.';
+      confirmDialog.showModal();
+    });
+    confirmDialog.querySelector('#cancelDelete').addEventListener('click', () => confirmDialog.close());
+    confirmDialog.querySelector('#confirmDelete').addEventListener('click', () => {
+      const key = 'squiggly-workspace-v3';
+      const data = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!data || !noteToDelete) return;
+      data.notes = data.notes.filter(note => note.id !== noteToDelete.id);
+      if (!data.notes.length) data.notes.push({id:crypto.randomUUID(),title:'Untitled note',body:'',created:Date.now(),edited:Date.now(),events:[]});
+      data.activeId = data.notes[0].id;
+      localStorage.setItem(key, JSON.stringify(data));
+      location.reload();
+    });
+  })();
+</script>
 </body></html>
