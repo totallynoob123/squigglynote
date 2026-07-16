@@ -290,7 +290,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
     openConfirm('Export ' + (notes.length === 1 ? 'note?' : 'notes?'), 'Download ' + description + ' as text files?', () => {
       notes.forEach(note => {
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([note.title + '\n\n' + note.body], { type: 'text/plain' }));
+        link.href = URL.createObjectURL(new Blob([note.title + '\n\n' + toPlainText(note.body)], { type: 'text/plain' }));
         link.download = (note.title || 'note').replace(/[\\/:*?"<>|]/g, '-') + '.txt';
         link.click();
         URL.revokeObjectURL(link.href);
@@ -395,7 +395,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   document.querySelector('#exportNote').onclick = () => {
     if (activePane === 'notes') {
       const notes = noteSelection.size ? state.notes.filter(note => noteSelection.has(note.id)) : [active()];
-      openConfirm('Export notes?', 'Download ' + notes.length + ' text file' + (notes.length === 1 ? '' : 's') + '?', () => notes.forEach(note => download(new Blob([note.title + '\n\n' + note.body], { type: 'text/plain' }), (note.title || 'note').replace(/[\\/:*?"<>|]/g, '-') + '.txt')));
+      openConfirm('Export notes?', 'Download ' + notes.length + ' text file' + (notes.length === 1 ? '' : 's') + '?', () => notes.forEach(note => download(new Blob([note.title + '\n\n' + toPlainText(note.body)], { type: 'text/plain' }), (note.title || 'note').replace(/[\\/:*?"<>|]/g, '-') + '.txt')));
     } else {
       const files = recordings.filter(recording => audioSelection.has(recording.id));
       if (!files.length) { showFeedback('Select recordings first', 'No audio files are selected.', 'Use Ctrl/Cmd-click for individual recordings or Shift-click for a range.'); return; }
@@ -1071,4 +1071,12 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   if (repaired) save('Formatting restored');
   document.head.insertAdjacentHTML('beforeend', '<style>.toolbar .btn.primary{background:var(--ink)!important;color:var(--paper)!important;border-color:var(--ink)!important}</style>');
 })();
+</script><script>
+function toPlainText(html) {
+  const container = document.createElement('div');
+  container.innerHTML = String(html)
+    .replace(/<br\s*\/?>(?=.)/gi, '\n')
+    .replace(/<\/(p|div|h1|h2|h3|li|blockquote)>/gi, '\n');
+  return container.textContent.replace(/\n{3,}/g, '\n\n').trim();
+}
 </script></body></html>
