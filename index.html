@@ -212,4 +212,44 @@
     });
   })();
 </script>
+<script>
+  (() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .nav-links,.top-actions{gap:8px!important}.nav-links a{display:none}
+      .workspace-delete{white-space:nowrap}.workspace-delete:hover{background:var(--soft)!important}
+      @media(max-width:650px){.landing .nav-links{gap:6px!important}.landing #landingDelete{display:inline-block!important}.landing #navOpen,.landing #signInButton{display:inline-block!important}.top-actions{gap:6px!important}.top-actions .small-btn{display:inline-block!important}.top-actions #exportNote{display:none!important}}
+    `;
+    document.head.append(style);
+
+    const landingActions = document.querySelector('.landing .nav-links');
+    const landingDelete = document.createElement('button');
+    landingDelete.className = 'small-btn workspace-delete';
+    landingDelete.id = 'landingDelete';
+    landingDelete.type = 'button';
+    landingDelete.textContent = 'Delete workspace';
+    landingActions.append(landingDelete);
+
+    const workspaceActions = document.querySelector('.top-actions');
+    const workspaceDelete = document.createElement('button');
+    workspaceDelete.className = 'small-btn workspace-delete';
+    workspaceDelete.type = 'button';
+    workspaceDelete.textContent = 'Delete workspace';
+    workspaceActions.prepend(workspaceDelete);
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'confirm-dialog';
+    dialog.innerHTML = '<h2>Delete workspace?</h2><p>This removes every note in this workspace. This cannot be undone.</p><div class="confirm-actions"><button class="small-btn" id="cancelWorkspaceDelete" type="button">Cancel</button><button class="primary-btn" id="confirmWorkspaceDelete" type="button">Delete workspace</button></div>';
+    document.body.append(dialog);
+    const openDeleteDialog = () => dialog.showModal();
+    landingDelete.addEventListener('click', openDeleteDialog);
+    workspaceDelete.addEventListener('click', openDeleteDialog);
+    dialog.querySelector('#cancelWorkspaceDelete').addEventListener('click', () => dialog.close());
+    dialog.querySelector('#confirmWorkspaceDelete').addEventListener('click', () => {
+      localStorage.removeItem('squiggly-workspace-v3');
+      dialog.close();
+      location.reload();
+    });
+  })();
+</script>
 </body></html>
