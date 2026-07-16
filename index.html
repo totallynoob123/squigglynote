@@ -466,4 +466,72 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
   document.querySelector('.notes-actions').append(transcribeAction);
   refreshRecordings().then(render);
 })();
+</script><script>
+(() => {
+  const originalRender = render;
+  const actionButtons = Array.from(document.querySelectorAll('.notes-actions button'));
+  const transcribeButton = actionButtons.find(button => button.textContent === 'Transcribe audio');
+  if (transcribeButton) transcribeButton.textContent = 'Transcribe selected';
+  document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="renameRecordingDialog"><div class="eyebrow">Audio recording</div><h2 style="margin-top:8px">Rename recording</h2><input id="recordingName" type="text" maxlength="80" style="width:100%;margin-top:12px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:10px;outline:0"><div class="dialog-actions"><button class="btn" id="cancelRenameRecording">Cancel</button><button class="btn primary" id="saveRecordingName">Save</button></div></dialog>');
+  const renameDialog = document.querySelector('#renameRecordingDialog');
+  const nameInput = document.querySelector('#recordingName');
+  let renameTarget = null;
+  const database = new Promise((resolve, reject) => {
+    const request = indexedDB.open('squiggly-recordings-v1', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const allRecordings = async () => new Promise(async (resolve, reject) => {
+    const db = await database, request = db.transaction('recordings').objectStore('recordings').getAll();
+    request.onsuccess = () => resolve(request.result.sort((a, b) => b.created - a.created));
+    request.onerror = () => reject(request.error);
+  });
+  const saveRecording = async recording => new Promise(async (resolve, reject) => {
+    const db = await database, request = db.transaction('recordings', 'readwrite').objectStore('recordings').put(recording);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+  const decorateAudio = async () => {
+    const audioPane = document.querySelector('.pane-tab.active')?.dataset.pane === 'audio';
+    if (transcribeButton) transcribeButton.hidden = !audioPane;
+    if (!audioPane) return;
+    const files = await allRecordings();
+    if (document.querySelector('.pane-tab.active')?.dataset.pane !== 'audio') return;
+    const tabs = document.querySelector('#tabs');
+    const rows = Array.from(tabs.querySelectorAll(':scope > .tab'));
+    rows.forEach((selectionButton, index) => {
+      const file = files[index];
+      if (!file) return;
+      const card = document.createElement('div');
+      card.style.cssText = 'display:grid;gap:7px;padding:10px;margin:5px 0;border:1px solid var(--line);border-radius:9px;background:var(--paper)';
+      selectionButton.style.cssText = 'padding:4px 0;text-align:left;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      selectionButton.textContent = file.name;
+      selectionButton.title = 'Click to select. Ctrl/Cmd-click for more. Shift-click for a range.';
+      const meta = document.createElement('div');
+      meta.style.cssText = 'font-size:.72rem;color:var(--muted)';
+      meta.textContent = new Date(file.created).toLocaleString() + ' · WAV';
+      const controls = document.createElement('div');
+      controls.style.cssText = 'display:flex;align-items:center;gap:7px';
+      const player = document.createElement('audio');
+      player.controls = true; player.preload = 'metadata'; player.style.width = '100%'; player.src = URL.createObjectURL(file.blob);
+      const rename = document.createElement('button');
+      rename.className = 'btn'; rename.textContent = 'Rename'; rename.style.padding = '6px 8px';
+      rename.onclick = event => { event.stopPropagation(); renameTarget = file; nameInput.value = file.name; if (!renameDialog.open) renameDialog.showModal(); nameInput.focus(); nameInput.select(); };
+      controls.append(player, rename);
+      selectionButton.replaceWith(card);
+      card.append(selectionButton, meta, controls);
+    });
+  };
+  document.querySelector('#cancelRenameRecording').onclick = () => renameDialog.close();
+  document.querySelector('#saveRecordingName').onclick = async () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.reportValidity(); return; }
+    renameTarget.name = name;
+    await saveRecording(renameTarget);
+    renameDialog.close();
+    render();
+  };
+  render = () => { originalRender(); decorateAudio(); };
+  render();
+})();
 </script></body></html>
