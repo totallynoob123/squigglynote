@@ -77,4 +77,46 @@
     new MutationObserver(() => { if (/local/i.test(saveState.textContent)) saveState.textContent = 'Signed in'; }).observe(saveState, { childList: true, characterData: true, subtree: true });
   })();
 </script>
+<script>
+  (() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .delete-btn{border:1px solid #b54a4a!important;color:#9e3030!important;background:transparent!important}
+      .delete-btn:hover{background:#fff0f0!important;border-color:#9e3030!important}
+      body.dark .small-btn,body.dark .tool,body.dark .icon-btn,body.dark .settings input,body.dark .transcript{color:var(--ink)!important;border-color:#57575c!important}
+      body.dark .small-btn:hover,body.dark .tool:hover,body.dark .icon-btn:hover{background:#39393d!important}
+      body.dark .new-btn,body.dark .primary-btn,body.dark .tool.primary{color:#171718!important;background:#f1f1ef!important;border-color:#f1f1ef!important}
+      body.dark .delete-btn{color:#ffaaa5!important;border-color:#d77b78!important}
+      body.dark .delete-btn:hover{background:#4a292b!important}
+      body.dark .save-state,body.dark .status,body.dark .note,body.dark .sidebar-foot,body.dark .about,body.dark .recording-copy span{color:#c9c9cf!important}
+      body.dark .note-title::placeholder,body.dark .settings input::placeholder,body.dark .transcript::placeholder{color:#bfc0c7!important;opacity:1}
+      body:not(.dark) .small-btn,body:not(.dark) .tool,body:not(.dark) .icon-btn,body:not(.dark) .settings input,body:not(.dark) .transcript{color:#202120!important}
+    `;
+    document.head.append(style);
+
+    const sidebarHead = document.querySelector('.sidebar-head');
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'small-btn delete-btn';
+    deleteButton.id = 'deleteNote';
+    deleteButton.type = 'button';
+    deleteButton.textContent = 'Delete';
+    sidebarHead.append(deleteButton);
+
+    deleteButton.addEventListener('click', () => {
+      const key = 'squiggly-workspace-v3';
+      const workspace = JSON.parse(localStorage.getItem(key) || 'null');
+      if (!workspace?.notes?.length) return;
+      const note = workspace.notes.find(item => item.id === workspace.activeId);
+      if (!note || !confirm('Delete “' + (note.title || 'Untitled note') + '”? This cannot be undone.')) return;
+      workspace.notes = workspace.notes.filter(item => item.id !== note.id);
+      if (!workspace.notes.length) {
+        const replacement = { id: crypto.randomUUID(), title: 'Untitled note', body: '', created: Date.now(), edited: Date.now(), events: [] };
+        workspace.notes.push(replacement);
+      }
+      workspace.activeId = workspace.notes[0].id;
+      localStorage.setItem(key, JSON.stringify(workspace));
+      location.reload();
+    });
+  })();
+</script>
 </body></html>
