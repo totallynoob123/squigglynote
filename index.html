@@ -178,6 +178,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
   document.querySelector('#closeFeedback').onclick = () => feedbackDialog.close();
   const endpointProblem = (action, error) => {
     const detail = error.message || '';
+    if (action === 'rewrite' && sessionStorage.getItem(OPENAI_KEY)) return ['OpenAI request failed', 'The browser could not complete the request with the entered API key.', 'Check that the key is active and has API billing. If the browser blocks the request, use your ngrok rewrite endpoint instead.'];
     if (!tunnel.value.trim()) return [`Add a ${action} endpoint`, 'No API tunnel URL is configured.', 'Paste your ngrok rewrite URL into API tunnel below Edit history.'];
     if (detail.startsWith('HTTP 401') || detail.startsWith('HTTP 403')) return ['Tunnel rejected the request', 'The API returned ' + detail + '.', 'Check your ngrok access policy and that the tunnel is public.'];
     if (detail.startsWith('HTTP 404')) return [`${action} endpoint not found`, 'The API returned HTTP 404.', action === 'rewrite' ? 'Confirm the URL ends in /rewrite.' : 'Confirm the rewrite URL maps to a /transcribe route.'];
@@ -192,7 +193,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
     button.disabled = true; button.textContent = 'Working…';
     try {
       const apiKey = sessionStorage.getItem(OPENAI_KEY);
-      const useOpenAI = !tunnel.value.trim() && apiKey;
+      const useOpenAI = !!apiKey;
       const response = await fetch(useOpenAI ? 'https://api.openai.com/v1/chat/completions' : apiEndpoint('rewrite'), useOpenAI ? {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
