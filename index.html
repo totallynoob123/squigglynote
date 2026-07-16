@@ -971,4 +971,44 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   editorWrap.style.paddingTop = '22px';
   document.head.insertAdjacentHTML('beforeend', '<style>.toolbar .btn{background:var(--paper)}.toolbar .btn:hover{background:var(--bg)}.toolbar input[type=color]{background:var(--paper)!important}.editor{padding-top:22px}.title{margin-bottom:0}</style>');
 })();
+</script><script>
+(() => {
+  const editor = document.querySelector('#editor');
+  const formatBar = document.querySelector('[aria-label="Text formatting"]');
+  const buttons = Array.from(formatBar.querySelectorAll('button'));
+  const commandFor = {
+    Bold: 'bold',
+    Italic: 'italic',
+    Underline: 'underline',
+    'Bulleted list': 'insertUnorderedList',
+    'Numbered list': 'insertOrderedList'
+  };
+  const setSelected = (button, selected) => {
+    button.style.background = selected ? 'var(--ink)' : 'var(--paper)';
+    button.style.color = selected ? 'var(--paper)' : 'var(--ink)';
+    button.style.borderColor = selected ? 'var(--ink)' : 'var(--line)';
+    button.setAttribute('aria-pressed', String(selected));
+  };
+  const inTag = tag => {
+    const node = window.getSelection().anchorNode;
+    const element = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement);
+    return Boolean(element?.closest(tag));
+  };
+  const update = () => {
+    const selection = window.getSelection();
+    const inEditor = selection?.anchorNode && editor.contains(selection.anchorNode);
+    buttons.forEach(button => {
+      if (!inEditor) return setSelected(button, false);
+      const title = button.title;
+      let selected = commandFor[title] ? document.queryCommandState(commandFor[title]) : false;
+      if (title === 'Heading') selected = inTag('h2');
+      if (title === 'Quote') selected = inTag('blockquote');
+      setSelected(button, selected);
+    });
+  };
+  document.addEventListener('selectionchange', update);
+  buttons.forEach(button => button.addEventListener('click', () => setTimeout(update, 0)));
+  editor.addEventListener('keyup', update);
+  editor.addEventListener('mouseup', update);
+})();
 </script></body></html>
