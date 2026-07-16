@@ -726,4 +726,79 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     audioPicker.value = '';
   };
 })();
+</script><script>
+(() => {
+  const header = document.querySelector('.workspace-head');
+  const duplicateTitle = document.querySelector('#noteLabel');
+  duplicateTitle.hidden = true;
+  header.style.position = 'relative';
+  const toggle = document.createElement('button');
+  toggle.className = 'btn';
+  toggle.id = 'notesChatToggle';
+  toggle.textContent = 'Ask notes';
+  toggle.setAttribute('aria-expanded', 'false');
+  const saveState = document.querySelector('#saveState');
+  header.insertBefore(toggle, saveState);
+  const panel = document.createElement('section');
+  panel.id = 'notesChatPanel';
+  panel.hidden = true;
+  panel.style.cssText = 'position:absolute;z-index:10;right:18px;top:calc(100% + 8px);width:min(390px,calc(100vw - 56px));padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);box-shadow:0 16px 45px #0003';
+  panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>Ask your notes</strong><span class="eyebrow">AI</span></div><div id="notesChatMessages" style="display:grid;gap:8px;max-height:220px;overflow:auto;margin:12px 0"><p style="margin:0;color:var(--muted);font-size:.86rem;line-height:1.45">Ask about the active note or your saved notes.</p></div><div style="display:flex;gap:7px"><input id="notesChatInput" placeholder="Ask a question…" style="min-width:0;flex:1;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:9px;outline:0"><button class="btn primary" id="notesChatSend">Send</button></div>';
+  header.append(panel);
+  const messages = panel.querySelector('#notesChatMessages');
+  const input = panel.querySelector('#notesChatInput');
+  const addMessage = (text, role) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:9px 10px;border-radius:8px;font-size:.86rem;line-height:1.45;white-space:pre-wrap;' + (role === 'user' ? 'background:var(--ink);color:var(--paper);margin-left:28px' : 'background:var(--soft);margin-right:28px');
+    item.textContent = text; messages.append(item); messages.scrollTop = messages.scrollHeight;
+    return item;
+  };
+  const chatEndpoint = () => {
+    const tunnel = document.querySelector('#apiTunnel').value.trim();
+    if (!tunnel) return '';
+    const url = new URL(tunnel);
+    url.pathname = url.pathname.replace(/\/rewrite\/?$/, '/chat');
+    return url.toString();
+  };
+  const ask = async () => {
+    const question = input.value.trim();
+    if (!question) return;
+    const apiKey = sessionStorage.getItem('squiggly-openai-key-session');
+    const endpoint = apiKey ? 'https://api.openai.com/v1/chat/completions' : chatEndpoint();
+    if (!endpoint) {
+      showFeedback('Connect an AI service', 'The chatbot needs an OpenAI API key or an API tunnel.', 'Add an OpenAI key or an ngrok /rewrite URL in the right sidebar. The chat route uses /chat.');
+      return;
+    }
+    addMessage(question, 'user'); input.value = '';
+    const waiting = addMessage('Thinking…', 'assistant');
+    const notes = state.notes.map(note => ({ title: note.title, body: note.body })).slice(0, 30);
+    const context = JSON.stringify(notes).slice(0, 30000);
+    try {
+      const response = await fetch(endpoint, apiKey ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({ model: 'gpt-5-mini', messages: [{ role: 'system', content: 'Answer questions about the user\'s notes. Be concise and use only the supplied note context. If the answer is not in the notes, say so. Notes: ' + context }, { role: 'user', content: question }] })
+      } : {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: question, notes, activeNote: active() })
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      const answer = data.answer || data.text || data.result || data.choices?.[0]?.message?.content;
+      if (!answer) throw new Error('No answer returned');
+      waiting.textContent = answer;
+    } catch (error) {
+      waiting.textContent = 'I could not answer that right now.';
+      showFeedback('Chatbot request failed', error.message || 'The AI service did not return an answer.', apiKey ? 'Check the temporary OpenAI key and browser access, or use your ngrok chat endpoint.' : 'Check that your tunnel exposes a /chat endpoint that accepts note context.');
+    }
+  };
+  toggle.onclick = () => {
+    panel.hidden = !panel.hidden;
+    toggle.setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) input.focus();
+  };
+  panel.querySelector('#notesChatSend').onclick = ask;
+  input.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); ask(); } };
+})();
 </script></body></html>
