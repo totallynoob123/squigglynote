@@ -119,4 +119,42 @@
     });
   })();
 </script>
+<script>
+  (() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .home-theme{min-width:78px}
+      body.dark .landing{background:radial-gradient(circle at 90% 8%,#403768 0,transparent 24rem),linear-gradient(140deg,#1e1e20 0%,#171718 100%)}
+      body.dark .landing .nav-links,body.dark .landing .lede,body.dark .landing .note,body.dark .landing .feature p{color:#c5c5cb}
+      body.dark .landing .hero-card,body.dark .landing .feature{background:#222224;border-color:#38383b;box-shadow:none}
+      body.dark .landing .mini-page p{color:#d7d7d4}
+      body.dark .landing .mini-head,body.dark .landing .features{border-color:#38383b}
+      body.dark .landing .hero-card:after{background:#403768}
+      body.dark .landing .primary-btn{background:#f1f1ef!important;color:#171718!important;border-color:#f1f1ef!important}
+      body.dark .landing .small-btn{color:#f1f1ef!important;border-color:#57575c!important}
+      body.dark .landing .small-btn:hover{background:#39393d!important}
+    `;
+    document.head.append(style);
+
+    const mobileThemeStyle = document.createElement('style');
+    mobileThemeStyle.textContent = '@media(max-width:650px){.landing .nav-links{display:flex!important}.landing .nav-links a,.landing #navOpen,.landing #signInButton{display:none!important}.landing .home-theme{display:inline-block!important}}';
+    document.head.append(mobileThemeStyle);
+
+    const nav = document.querySelector('.landing .nav-links');
+    const homeTheme = document.createElement('button');
+    homeTheme.className = 'small-btn home-theme';
+    homeTheme.type = 'button';
+    homeTheme.id = 'homeThemeButton';
+    nav.prepend(homeTheme);
+
+    const syncThemeLabels = () => {
+      const dark = document.body.classList.contains('dark');
+      homeTheme.textContent = dark ? 'Light theme' : 'Dark theme';
+      document.querySelector('#themeButton').title = dark ? 'Use light theme' : 'Use dark theme';
+    };
+    homeTheme.addEventListener('click', () => { document.querySelector('#themeButton').click(); syncThemeLabels(); });
+    new MutationObserver(syncThemeLabels).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    syncThemeLabels();
+  })();
+</script>
 </body></html>
