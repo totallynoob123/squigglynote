@@ -401,7 +401,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     } else {
       const files = recordings.filter(recording => audioSelection.has(recording.id));
       if (!files.length) { showFeedback('Select recordings first', 'No audio files are selected.', 'Use Ctrl/Cmd-click for individual recordings or Shift-click for a range.'); return; }
-      openConfirm('Export recordings?', 'Download ' + files.length + ' WAV file' + (files.length === 1 ? '' : 's') + '?', () => files.forEach(file => download(file.blob, file.name.replace(/[\\/:*?"<>|]/g, '-') + '.wav')));
+      openConfirm('Export recordings?', 'Download ' + files.length + ' WAV file' + (files.length === 1 ? '' : 's') + '?', () => files.forEach(file => download(file.blob, file.fileName || (file.name.replace(/[\\/:*?"<>|]/g, '-') + '.wav'))));
     }
   };
   document.querySelector('#deleteNote').onclick = () => {
@@ -454,7 +454,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     try {
       const texts = [];
       for (const file of files) {
-        const form = new FormData(); form.append('file', file.blob, file.name + '.wav');
+        const form = new FormData(); form.append('file', file.blob, file.fileName || (file.name + '.wav'));
         const response = await fetch(apiEndpoint('transcribe'), { method: 'POST', body: form }); if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json(), text = data.text || data.transcript || data.result; if (!text) throw new Error('No transcript returned'); texts.push(text);
       }
@@ -657,5 +657,68 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   document.querySelectorAll('.pane-tab').forEach(button => button.addEventListener('click', () => setTimeout(syncPane, 0)));
   new MutationObserver(syncPane).observe(tabs, { childList: true });
   syncPane();
+})();
+</script><script>
+(() => {
+  const actions = document.querySelector('.notes-actions');
+  const importNotes = document.createElement('button');
+  const importAudio = document.createElement('button');
+  importNotes.className = importAudio.className = 'btn';
+  importNotes.textContent = 'Import notes';
+  importAudio.textContent = 'Import audio';
+  importNotes.style.gridColumn = importAudio.style.gridColumn = '1 / -1';
+  actions.append(importNotes, importAudio);
+  const notePicker = document.createElement('input');
+  notePicker.type = 'file'; notePicker.accept = '.txt,.md,text/plain'; notePicker.multiple = true; notePicker.hidden = true;
+  const audioPicker = document.createElement('input');
+  audioPicker.type = 'file'; audioPicker.accept = 'audio/*,.wav,.mp3,.m4a,.ogg'; audioPicker.multiple = true; audioPicker.hidden = true;
+  document.body.append(notePicker, audioPicker);
+  const isAudioPane = () => document.querySelector('.pane-tab.active')?.dataset.pane === 'audio';
+  const syncImportButtons = () => {
+    importNotes.hidden = isAudioPane();
+    importAudio.hidden = !isAudioPane();
+  };
+  document.querySelectorAll('.pane-tab').forEach(button => button.addEventListener('click', () => setTimeout(syncImportButtons, 0)));
+  syncImportButtons();
+  importNotes.onclick = () => notePicker.click();
+  importAudio.onclick = () => audioPicker.click();
+  notePicker.onchange = async () => {
+    const files = Array.from(notePicker.files);
+    if (!files.length) return;
+    const imported = await Promise.all(files.map(async file => ({
+      id: crypto.randomUUID(),
+      title: file.name.replace(/\.[^.]+$/, '') || 'Imported note',
+      body: await file.text(),
+      created: Date.now(),
+      edited: Date.now(),
+      events: [{ kind: 'Imported', time: Date.now() }]
+    })));
+    state.notes.push(...imported);
+    state.activeId = imported[0].id;
+    save('Imported ' + imported.length + ' note' + (imported.length === 1 ? '' : 's'));
+    render();
+    notePicker.value = '';
+  };
+  const audioDb = new Promise((resolve, reject) => {
+    const request = indexedDB.open('squiggly-recordings-v1', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  audioPicker.onchange = async () => {
+    const files = Array.from(audioPicker.files);
+    if (!files.length) return;
+    const db = await audioDb;
+    const transaction = db.transaction('recordings', 'readwrite');
+    files.forEach(file => transaction.objectStore('recordings').put({
+      id: crypto.randomUUID(),
+      name: file.name.replace(/\.[^.]+$/, '') || 'Imported audio',
+      fileName: file.name,
+      created: Date.now(),
+      blob: file
+    }));
+    transaction.oncomplete = () => location.reload();
+    transaction.onerror = () => showFeedback('Could not import audio', 'One or more audio files could not be stored in this browser.', 'Try importing standard audio formats such as WAV, MP3, M4A, or OGG.');
+    audioPicker.value = '';
+  };
 })();
 </script></body></html>
