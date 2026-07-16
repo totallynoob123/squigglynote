@@ -13,4 +13,13 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
   openSettings = () => { const dialog = document.querySelector('#settingsDialog'); if (!dialog.open) dialog.showModal(); document.querySelectorAll('[data-key]').forEach(button => button.classList.toggle('active', prefs[button.dataset.key] === button.dataset.value)); };
   document.querySelector('#homeSettings').onclick = openSettings;
   document.querySelector('#workspaceSettings').onclick = openSettings;
+</script><script>
+  (() => {
+    const fontButton = document.querySelector('[data-key="font"][data-value="sans"]');
+    const largeButton = document.querySelector('[data-key="size"][data-value="large"]');
+    fontButton.textContent = 'Sans-serif';
+    largeButton.textContent = 'Large text';
+    fontButton.onclick = () => { prefs.font = 'sans'; applyPrefs(); openSettings(); };
+    largeButton.onclick = () => { prefs.size = 'large'; applyPrefs(); openSettings(); };
+  })();
 </script></body></html>
