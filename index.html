@@ -31,11 +31,11 @@
     style.textContent = '.small-btn,.ghost-btn,.new-btn,.tool,.primary-btn{border-radius:7px!important;box-shadow:none!important;transition:background .16s ease,border-color .16s ease}.small-btn,.ghost-btn,.tool,.icon-btn{background:transparent!important}.small-btn:hover,.ghost-btn:hover,.tool:hover,.icon-btn:hover{background:var(--soft)!important}.primary-btn{border:1px solid var(--ink)!important;border-radius:7px!important}.new-btn{border:1px solid var(--ink)!important;border-radius:7px!important}.auth-dialog{width:min(420px,calc(100% - 32px));border:1px solid var(--line);border-radius:14px;background:var(--paper);color:var(--ink);padding:24px;box-shadow:0 20px 60px #20212030}.auth-dialog::backdrop{background:#20212055}.auth-dialog h2{margin:0 0 6px;letter-spacing:-.04em}.auth-dialog p{margin:0 0 20px;color:var(--muted);font-size:.9rem;line-height:1.5}.auth-dialog label{display:grid;gap:7px;color:var(--muted);font-size:.78rem}.auth-dialog input{border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:10px}.auth-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}';
     document.head.append(style);
     const navOpen = document.querySelector('#navOpen');
-    const signIn = document.createElement('button'); signIn.className = 'small-btn'; signIn.id = 'signInButton'; signIn.textContent = 'Sign in'; navOpen.before(signIn);
+    const signIn = document.createElement('button'); signIn.className = 'small-btn'; signIn.id = 'signInButton'; signIn.textContent = 'Sign in'; navOpen.before(signIn); navOpen.textContent = 'Open workspace';
     const topActions = document.querySelector('.top-actions');
-    const accountButton = document.createElement('button'); accountButton.className = 'small-btn'; accountButton.id = 'accountButton'; accountButton.textContent = 'Sign in'; topActions.prepend(accountButton);
+    const accountButton = document.createElement('button'); accountButton.className = 'small-btn'; accountButton.id = 'accountButton'; accountButton.textContent = 'Sign in'; topActions.prepend(accountButton); document.querySelector('#exportNote').textContent = 'Export note'; document.querySelector('#backButton').textContent = 'Back';
     document.querySelector('.topbar .eyebrow').id = 'workspaceIdentity';
-    document.querySelector('.hero-actions .note').id = 'saveNote';
+    document.querySelector('.hero-actions .note').id = 'saveNote'; document.querySelector('.hero .eyebrow').textContent = 'A calm space to write';
     // Create a Web OAuth client in Google Cloud, then replace this value.
     const GOOGLE_CLIENT_ID = '52788138271-h7kenp1gibepd167jcrdodntk7tjrmvp.apps.googleusercontent.com';
     const ACCOUNT_KEY = 'squiggly-account-v1';
@@ -43,13 +43,13 @@
     const updateIdentity = () => {
       const saved = account();
       document.querySelector('#signInButton').textContent = saved ? saved.email : 'Sign in';
-      document.querySelector('#accountButton').textContent = saved ? 'Switch account' : 'Sign in';
+      document.querySelector('#accountButton').textContent = saved ? 'Account' : 'Sign in';
       document.querySelector('#workspaceIdentity').textContent = saved ? 'Saved for ' + saved.email : 'Guest workspace — saved on this device';
-      document.querySelector('#saveNote').textContent = saved ? 'Your personal workspace is saved in this browser.' : 'Sign in to keep a personal workspace in this browser.';
+      document.querySelector('#saveNote').textContent = saved ? 'Your workspace is ready whenever you are.' : 'Sign in to personalize your workspace.';
     };
     const dialog = document.createElement('dialog');
     dialog.className = 'auth-dialog';
-    dialog.innerHTML = '<form id="authForm"><h2>Sign in</h2><p>Use Google, or save an email-only local profile on this device.</p><div id="googleButton" aria-label="Continue with Google"></div><p id="googleHelp" class="note"></p><label>Email address<input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com"></label><div class="auth-actions"><button class="small-btn" type="button" id="cancelAuth">Cancel</button><button class="primary-btn" type="submit">Continue locally</button></div></form>';
+    dialog.innerHTML = '<div><h2>Welcome back</h2><p>Sign in with Google to continue to your workspace.</p><div id="googleButton" aria-label="Continue with Google"></div><p id="googleHelp" class="note"></p><div class="auth-actions"><button class="small-btn" type="button" id="cancelAuth">Cancel</button></div></div>';
     document.body.append(dialog);
     const saveAccount = profile => { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(profile)); dialog.close(); updateIdentity(); const saveState = document.querySelector('#saveState'); if (saveState) saveState.textContent = 'Signed in — saved locally'; };
     const decodeGoogleCredential = credential => JSON.parse(atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
@@ -62,17 +62,19 @@
       google.accounts.id.renderButton(button, { theme: 'outline', size: 'large', width: 340, text: 'continue_with' });
     };
     const googleScript = document.createElement('script'); googleScript.src = 'https://accounts.google.com/gsi/client'; googleScript.async = true; googleScript.onload = initializeGoogle; document.head.append(googleScript);
-    const openAuth = () => { dialog.querySelector('#emailInput').value = account()?.email || ''; dialog.showModal(); dialog.querySelector('#emailInput').focus(); if (window.google?.accounts?.id) initializeGoogle(); };
+    const openAuth = () => { dialog.showModal(); if (window.google?.accounts?.id) initializeGoogle(); };
     document.querySelector('#signInButton').addEventListener('click', openAuth);
     document.querySelector('#accountButton').addEventListener('click', openAuth);
     dialog.querySelector('#cancelAuth').addEventListener('click', () => dialog.close());
-    dialog.querySelector('#authForm').addEventListener('submit', event => {
-      event.preventDefault();
-      const email = dialog.querySelector('#emailInput').value.trim().toLowerCase();
-      if (!email || !dialog.querySelector('#emailInput').checkValidity()) return;
-      saveAccount({ email, provider: 'local' });
-    });
+    const renderIdentity = updateIdentity;
+    updateIdentity = () => { renderIdentity(); const saved = account(); document.querySelector('#workspaceIdentity').textContent = saved ? 'Signed in as ' + saved.email : 'Your workspace'; };
     updateIdentity();
+    document.querySelector('#saveState').textContent = 'Ready';
+    document.querySelector('.sidebar-foot').textContent = 'Your notes and recent activity are always close at hand. Optional AI tools connect only to the URL you choose.';
+    document.querySelector('.mini-head span:last-child').textContent = 'Your space';
+    document.querySelector('.feature b').textContent = 'Made for your thoughts';
+    const saveState = document.querySelector('#saveState');
+    new MutationObserver(() => { if (/local/i.test(saveState.textContent)) saveState.textContent = 'Signed in'; }).observe(saveState, { childList: true, characterData: true, subtree: true });
   })();
 </script>
 </body></html>
