@@ -1120,4 +1120,25 @@ function toPlainText(html) {
   document.querySelector('#workspaceSettings').addEventListener('click', () => setTimeout(sync, 0));
   sync();
 })();
+</script><script>
+(() => {
+  const editor = document.querySelector('#editor');
+  const closestFormat = selector => {
+    const node = window.getSelection().anchorNode;
+    const element = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement);
+    return element?.closest(selector);
+  };
+  const setupToggle = (title, tag) => {
+    const button = Array.from(document.querySelectorAll('[aria-label="Text formatting"] button')).find(item => item.title === title);
+    if (!button) return;
+    button.onclick = () => {
+      editor.focus();
+      document.execCommand('formatBlock', false, closestFormat(tag) ? 'p' : tag);
+      edit();
+      document.dispatchEvent(new Event('selectionchange'));
+    };
+  };
+  setupToggle('Heading', 'h2');
+  setupToggle('Quote', 'blockquote');
+})();
 </script></body></html>
