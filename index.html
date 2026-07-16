@@ -36,6 +36,8 @@
     const accountButton = document.createElement('button'); accountButton.className = 'small-btn'; accountButton.id = 'accountButton'; accountButton.textContent = 'Sign in'; topActions.prepend(accountButton);
     document.querySelector('.topbar .eyebrow').id = 'workspaceIdentity';
     document.querySelector('.hero-actions .note').id = 'saveNote';
+    // Create a Web OAuth client in Google Cloud, then replace this value.
+    const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
     const ACCOUNT_KEY = 'squiggly-account-v1';
     const account = () => JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null');
     const updateIdentity = () => {
@@ -47,9 +49,20 @@
     };
     const dialog = document.createElement('dialog');
     dialog.className = 'auth-dialog';
-    dialog.innerHTML = '<form id="authForm"><h2>Sign in</h2><p>Your email is saved on this device to identify this workspace. It does not sync to a server.</p><label>Email address<input id="emailInput" type="email" autocomplete="email" required placeholder="you@example.com"></label><div class="auth-actions"><button class="small-btn" type="button" id="cancelAuth">Cancel</button><button class="primary-btn" type="submit">Continue</button></div></form>';
+    dialog.innerHTML = '<form id="authForm"><h2>Sign in</h2><p>Use Google, or save an email-only local profile on this device.</p><div id="googleButton" aria-label="Continue with Google"></div><p id="googleHelp" class="note"></p><label>Email address<input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com"></label><div class="auth-actions"><button class="small-btn" type="button" id="cancelAuth">Cancel</button><button class="primary-btn" type="submit">Continue locally</button></div></form>';
     document.body.append(dialog);
-    const openAuth = () => { dialog.querySelector('#emailInput').value = account()?.email || ''; dialog.showModal(); dialog.querySelector('#emailInput').focus(); };
+    const saveAccount = profile => { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(profile)); dialog.close(); updateIdentity(); const saveState = document.querySelector('#saveState'); if (saveState) saveState.textContent = 'Signed in — saved locally'; };
+    const decodeGoogleCredential = credential => JSON.parse(atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const initializeGoogle = () => {
+      const help = dialog.querySelector('#googleHelp');
+      if (GOOGLE_CLIENT_ID.startsWith('YOUR_')) { help.textContent = 'Add your Google OAuth client ID to enable Google sign-in.'; return; }
+      if (!window.google?.accounts?.id) { help.textContent = 'Google sign-in could not load.'; return; }
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: response => { try { const profile = decodeGoogleCredential(response.credential); if (!profile.email || !profile.email_verified) throw Error(); saveAccount({ email: profile.email, name: profile.name || '', provider: 'google' }); } catch { help.textContent = 'Google could not verify this sign-in.'; } } });
+      const button = dialog.querySelector('#googleButton'); button.replaceChildren();
+      google.accounts.id.renderButton(button, { theme: 'outline', size: 'large', width: 340, text: 'continue_with' });
+    };
+    const googleScript = document.createElement('script'); googleScript.src = 'https://accounts.google.com/gsi/client'; googleScript.async = true; googleScript.onload = initializeGoogle; document.head.append(googleScript);
+    const openAuth = () => { dialog.querySelector('#emailInput').value = account()?.email || ''; dialog.showModal(); dialog.querySelector('#emailInput').focus(); if (window.google?.accounts?.id) initializeGoogle(); };
     document.querySelector('#signInButton').addEventListener('click', openAuth);
     document.querySelector('#accountButton').addEventListener('click', openAuth);
     dialog.querySelector('#cancelAuth').addEventListener('click', () => dialog.close());
@@ -57,10 +70,7 @@
       event.preventDefault();
       const email = dialog.querySelector('#emailInput').value.trim().toLowerCase();
       if (!email || !dialog.querySelector('#emailInput').checkValidity()) return;
-      localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ email }));
-      dialog.close(); updateIdentity();
-      const state = document.querySelector('#saveState');
-      if (state) state.textContent = 'Signed in — saved locally';
+      saveAccount({ email, provider: 'local' });
     });
     updateIdentity();
   })();
