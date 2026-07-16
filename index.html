@@ -544,4 +544,71 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     section.style.cssText = 'margin:0;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--soft)';
   });
 })();
+</script><script>
+(() => {
+  document.head.insertAdjacentHTML('beforeend', '<style>#tabs{gap:8px}#tabs>.tab{padding:11px 10px;border:1px solid transparent;line-height:1.25}#tabs>.tab:hover{border-color:var(--line)}.audio-library-row{display:grid;gap:8px;padding:11px;margin:5px 0;border:1px solid var(--line);border-radius:10px;background:var(--paper)}.audio-library-row .tab{margin:0;padding:3px 0!important}.audio-library-row audio{width:100%;height:32px}</style>');
+  document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="audioRenameDialog"><div class="eyebrow">Audio library</div><h2 style="margin-top:8px">Rename recording</h2><input id="audioRenameInput" type="text" maxlength="80" required style="width:100%;margin-top:12px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:10px;outline:0"><div class="dialog-actions"><button class="btn" id="audioRenameCancel">Cancel</button><button class="btn primary" id="audioRenameSave">Save name</button></div></dialog>');
+  const dialog = document.querySelector('#audioRenameDialog'), input = document.querySelector('#audioRenameInput'), tabs = document.querySelector('#tabs');
+  let target = null, timer;
+  const database = new Promise((resolve, reject) => {
+    const request = indexedDB.open('squiggly-recordings-v1', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const getFiles = () => new Promise(async (resolve, reject) => {
+    const db = await database, request = db.transaction('recordings').objectStore('recordings').getAll();
+    request.onsuccess = () => resolve(request.result.sort((a, b) => b.created - a.created));
+    request.onerror = () => reject(request.error);
+  });
+  const putFile = file => new Promise(async (resolve, reject) => {
+    const db = await database, request = db.transaction('recordings', 'readwrite').objectStore('recordings').put(file);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+  const isAudioPane = () => document.querySelector('.pane-tab.active')?.dataset.pane === 'audio';
+  const enhanceAudio = async () => {
+    if (!isAudioPane()) return;
+    const files = await getFiles();
+    if (!isAudioPane()) return;
+    const buttons = Array.from(tabs.querySelectorAll(':scope > .tab:not([data-audio-ready])'));
+    buttons.forEach((button, index) => {
+      const file = files[index];
+      if (!file) return;
+      button.dataset.audioReady = 'true';
+      button.dataset.audioId = file.id;
+      button.textContent = file.name;
+      const row = document.createElement('div');
+      row.className = 'audio-library-row';
+      const meta = document.createElement('div');
+      meta.style.cssText = 'font-size:.72rem;color:var(--muted)';
+      meta.textContent = new Date(file.created).toLocaleString() + ' · WAV recording';
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.src = URL.createObjectURL(file.blob);
+      audio.onclick = event => event.stopPropagation();
+      audio.onplay = event => event.stopPropagation();
+      const rename = document.createElement('button');
+      rename.className = 'btn'; rename.textContent = 'Rename'; rename.style.cssText = 'justify-self:start;padding:6px 9px';
+      rename.onclick = event => {
+        event.stopPropagation(); target = file; input.value = file.name;
+        if (!dialog.open) dialog.showModal();
+        input.focus(); input.select();
+      };
+      button.replaceWith(row); row.append(button, meta, audio, rename);
+    });
+    tabs.querySelectorAll('audio').forEach(audio => { audio.onclick = event => event.stopPropagation(); });
+  };
+  document.querySelector('#audioRenameCancel').onclick = () => dialog.close();
+  document.querySelector('#audioRenameSave').onclick = async () => {
+    const name = input.value.trim();
+    if (!name) { input.reportValidity(); return; }
+    target.name = name; await putFile(target);
+    const button = tabs.querySelector('[data-audio-id="' + target.id + '"]');
+    if (button) button.textContent = name;
+    dialog.close();
+  };
+  new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(enhanceAudio, 0); }).observe(tabs, { childList: true, subtree: false });
+  document.querySelectorAll('.pane-tab').forEach(button => button.addEventListener('click', () => setTimeout(enhanceAudio, 0)));
+  enhanceAudio();
+})();
 </script></body></html>
