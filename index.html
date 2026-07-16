@@ -1046,4 +1046,29 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   };
   formatBar.insertBefore(size, formatBar.lastElementChild);
 })();
+</script><script>
+(() => {
+  const hasFormat = value => /<\/?(b|strong|i|em|u|h2|ul|ol|li|blockquote|font|span)\b/i.test(value);
+  let repaired = false;
+  state.notes.forEach(note => {
+    let value = note.body;
+    for (let step = 0; step < 3; step++) {
+      const probe = document.createElement('textarea');
+      probe.innerHTML = value;
+      const decoded = probe.value;
+      if (decoded === value || !hasFormat(decoded)) break;
+      value = decoded;
+    }
+    if (value !== note.body && hasFormat(value)) { note.body = value; repaired = true; }
+  });
+  const restoreFormat = () => {
+    const note = active();
+    if (note) document.querySelector('#editor').innerHTML = note.body;
+  };
+  const previousRender = render;
+  render = () => { previousRender(); restoreFormat(); };
+  restoreFormat();
+  if (repaired) save('Formatting restored');
+  document.head.insertAdjacentHTML('beforeend', '<style>.toolbar .btn.primary{background:var(--ink)!important;color:var(--paper)!important;border-color:var(--ink)!important}</style>');
+})();
 </script></body></html>
