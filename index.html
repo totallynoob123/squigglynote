@@ -306,4 +306,65 @@
     panel.querySelector('#closeSettings').addEventListener('click', () => panel.close());
   })();
 </script>
+<script>
+  (() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .sidebar-head{align-items:flex-start!important}.notes-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:175px}.notes-actions .small-btn,.notes-actions .new-btn{padding:7px 9px;font-size:.76rem}
+      .top-actions{padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--paper);gap:3px!important}.top-actions .small-btn{border-color:transparent!important}.top-actions .small-btn:hover{border-color:var(--line)!important}
+      .top-actions .workspace-delete{border-left:1px solid var(--line)!important;border-radius:0!important;margin-left:3px}.top-actions .settings-gear{border-left:1px solid var(--line)!important;border-radius:0!important;margin-left:3px}
+      body.clean-bg:not(.dark){--bg:#fbfaf7;--paper:#ffffff;--soft:#f2f1ed}body.font-sans .editor{font-family:Inter,ui-sans-serif,system-ui,sans-serif!important;line-height:1.7!important}
+      .settings-panel label span{color:var(--muted)}
+    `;
+    document.head.append(style);
+
+    const noteHead = document.querySelector('.sidebar-head');
+    const noteActions = document.createElement('div');
+    noteActions.className = 'notes-actions';
+    noteHead.append(noteActions);
+    ['#newNote', '#exportNote', '#deleteNote'].forEach(selector => { const button = document.querySelector(selector); if (button) noteActions.append(button); });
+
+    const homeOld = document.querySelector('#homeThemeButton');
+    const homeGear = homeOld.cloneNode(true); homeOld.replaceWith(homeGear);
+    const workspaceOld = document.querySelector('#themeButton');
+    const workspaceGear = workspaceOld.cloneNode(true); workspaceOld.replaceWith(workspaceGear);
+    homeGear.className = workspaceGear.className = 'small-btn settings-gear';
+    homeGear.textContent = workspaceGear.textContent = '⚙';
+    homeGear.title = workspaceGear.title = 'Settings';
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'settings-panel';
+    dialog.innerHTML = '<h2>Settings</h2><label><span>Theme</span><select id="appearanceTheme"><option value="light">Light</option><option value="dark">Dark</option></select></label><label><span>Background</span><select id="appearanceBackground"><option value="warm">Warm beige</option><option value="clean">Clean white</option></select></label><label><span>Editor font</span><select id="appearanceFont"><option value="serif">Serif</option><option value="sans">Sans serif</option></select></label><label><span>Editor text</span><select id="appearanceText"><option value="regular">Regular</option><option value="large">Large</option></select></label><div class="confirm-actions"><button class="small-btn" id="closeAppearance" type="button">Done</button></div>';
+    document.body.append(dialog);
+
+    const workspaceKey = 'squiggly-workspace-v3';
+    const preferenceKey = 'squiggly-preferences-v1';
+    const getPreferences = () => JSON.parse(localStorage.getItem(preferenceKey) || '{"background":"warm","font":"serif","text":"regular"}');
+    const applyPreferences = prefs => { document.body.classList.toggle('clean-bg', prefs.background === 'clean'); document.body.classList.toggle('font-sans', prefs.font === 'sans'); document.body.classList.toggle('text-large', prefs.text === 'large'); };
+    applyPreferences(getPreferences());
+    const openSettings = () => {
+      const data = JSON.parse(localStorage.getItem(workspaceKey) || 'null');
+      const prefs = getPreferences();
+      dialog.querySelector('#appearanceTheme').value = data?.dark ? 'dark' : 'light';
+      dialog.querySelector('#appearanceBackground').value = prefs.background;
+      dialog.querySelector('#appearanceFont').value = prefs.font;
+      dialog.querySelector('#appearanceText').value = prefs.text;
+      dialog.showModal();
+    };
+    homeGear.addEventListener('click', openSettings); workspaceGear.addEventListener('click', openSettings);
+    dialog.querySelector('#appearanceTheme').addEventListener('change', event => {
+      const data = JSON.parse(localStorage.getItem(workspaceKey) || 'null');
+      if (!data) return;
+      data.dark = event.target.value === 'dark';
+      localStorage.setItem(workspaceKey, JSON.stringify(data));
+      document.body.classList.toggle('dark', data.dark);
+      setTimeout(() => location.reload(), 80);
+    });
+    ['appearanceBackground','appearanceFont','appearanceText'].forEach(id => dialog.querySelector('#' + id).addEventListener('change', () => {
+      const prefs = { background: dialog.querySelector('#appearanceBackground').value, font: dialog.querySelector('#appearanceFont').value, text: dialog.querySelector('#appearanceText').value };
+      localStorage.setItem(preferenceKey, JSON.stringify(prefs)); applyPreferences(prefs);
+    }));
+    dialog.querySelector('#closeAppearance').addEventListener('click', () => dialog.close());
+  })();
+</script>
 </body></html>
