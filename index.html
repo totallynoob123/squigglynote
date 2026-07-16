@@ -22,4 +22,14 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
     fontButton.onclick = () => { prefs.font = 'sans'; applyPrefs(); openSettings(); };
     largeButton.onclick = () => { prefs.size = 'large'; applyPrefs(); openSettings(); };
   })();
+</script><script>
+  (() => {
+    const whiteBackground = document.querySelector('[data-key="background"][data-value="clean"]');
+    whiteBackground.onclick = () => {
+      prefs.background = 'clean';
+      prefs.theme = 'light';
+      applyPrefs();
+      openSettings();
+    };
+  })();
 </script></body></html>
