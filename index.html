@@ -743,7 +743,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   panel.id = 'notesChatPanel';
   panel.hidden = true;
   panel.style.cssText = 'position:absolute;z-index:10;right:18px;top:calc(100% + 8px);width:min(390px,calc(100vw - 56px));padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);box-shadow:0 16px 45px #0003';
-  panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>Ask your notes</strong><span class="eyebrow">AI</span></div><div id="notesChatMessages" style="display:grid;gap:8px;max-height:220px;overflow:auto;margin:12px 0"><p style="margin:0;color:var(--muted);font-size:.86rem;line-height:1.45">Ask about the active note or your saved notes.</p></div><div style="display:flex;gap:7px"><input id="notesChatInput" placeholder="Ask a question…" style="min-width:0;flex:1;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:9px;outline:0"><button class="btn primary" id="notesChatSend">Send</button></div>';
+  panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>Ask your notes</strong><span class="eyebrow">AI</span></div><div id="notesChatMessages" style="display:grid;gap:8px;max-height:220px;overflow:auto;margin:12px 0"><p style="margin:0;color:var(--muted);font-size:.86rem;line-height:1.45">Ask about or edit the active note.</p></div><div style="display:flex;gap:7px"><input id="notesChatInput" placeholder="Ask a question…" style="min-width:0;flex:1;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:9px;outline:0"><button class="btn primary" id="notesChatSend">Send</button></div>';
   header.append(panel);
   const messages = panel.querySelector('#notesChatMessages');
   const input = panel.querySelector('#notesChatInput');
@@ -771,7 +771,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     }
     addMessage(question, 'user'); input.value = '';
     const waiting = addMessage('Thinking…', 'assistant');
-    const notes = state.notes.map(note => ({ title: note.title, body: note.body })).slice(0, 30);
+    const notes = [{ title: active().title, body: active().body }];
     const context = JSON.stringify(notes).slice(0, 30000);
     try {
       const response = await fetch(endpoint, apiKey ? {
@@ -872,7 +872,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
     if (!url) { showFeedback('Connect an AI service', 'The chatbot needs an OpenAI API key or API tunnel.', 'Add one in the right sidebar before asking or editing notes.'); return; }
     message(question, true); input.value = '';
     const waiting = message('Thinking…');
-    const notes = state.notes.map(note => ({ title: note.title, body: note.body })).slice(0, 30);
+    const notes = [{ title: active().title, body: active().body }];
     const context = JSON.stringify(notes).slice(0, 30000);
     try {
       const response = await fetch(url, apiKey ? {
