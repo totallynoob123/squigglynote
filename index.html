@@ -135,7 +135,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
       recorder.ondataavailable = event => { if (event.data.size) audioChunks.push(event.data); };
       recorder.onstop = async () => {
         stream.getTracks().forEach(track => track.stop());
-        mic.innerHTML = '&#127908;';
+        mic.innerHTML = window.microphoneGlyph;
         mic.disabled = true;
         status.textContent = 'Transcribing…';
         status.className = 'status';
@@ -220,7 +220,7 @@ const KEY='squiggly-workspace-v4',PREF='squiggly-preferences-v2',ACCOUNT='squigg
       recordedChunks = []; audioRecorder = new MediaRecorder(stream);
       audioRecorder.ondataavailable = event => { if (event.data.size) recordedChunks.push(event.data); };
       audioRecorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop()); recordButton.innerHTML = '&#127908;'; recordButton.disabled = true;
+        stream.getTracks().forEach(track => track.stop()); recordButton.innerHTML = window.microphoneGlyph; recordButton.disabled = true;
         status.textContent = 'Transcribing…'; status.className = 'status';
         try {
           const formData = new FormData();
@@ -433,7 +433,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
       processor.disconnect(); audioContext.close(); recordingStream.getTracks().forEach(track => track.stop());
       const blob = floatToWav(audioChunks, audioContext.sampleRate);
       await dbRequest('put', { id: crypto.randomUUID(), name: 'Recording ' + new Date().toLocaleTimeString(), created: Date.now(), blob });
-      processor = null; mic.innerHTML = '&#127908;'; status.textContent = 'WAV recording saved to Audio.'; status.className = 'status good';
+      processor = null; mic.innerHTML = window.microphoneGlyph; status.textContent = 'WAV recording saved to Audio.'; status.className = 'status good';
       await refreshRecordings(); return;
     }
     try {
@@ -1167,5 +1167,12 @@ function toPlainText(html) {
     palette.append(swatch);
   });
   bar.append(palette);
+})();
+</script><script>
+(() => {
+  window.microphoneGlyph = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="12" rx="4"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"></path></svg>';
+  const mic = document.querySelector('#transcribe');
+  mic.innerHTML = window.microphoneGlyph;
+  mic.style.lineHeight = '0';
 })();
 </script></body></html>
