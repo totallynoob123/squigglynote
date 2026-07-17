@@ -1175,4 +1175,41 @@ function toPlainText(html) {
   mic.innerHTML = window.microphoneGlyph;
   mic.style.lineHeight = '0';
 })();
-</script></body></html>
+</script><style>
+/* Responsive layout */
+html{min-width:0}
+body{min-width:0;overflow-x:hidden}
+img,video,audio{max-width:100%}
+.workspace,.shell,.app-shell{min-width:0}
+@media (max-width:900px){
+  .workspace{grid-template-columns:minmax(210px,30vw) minmax(0,1fr)!important}
+  .sidebar{min-width:0!important}
+  .timeline{display:none!important}
+  .editor-pane,.note-pane,main{min-width:0!important}
+  .workspace-head{gap:10px!important}
+  .toolbar,[aria-label="Text formatting"]{flex-wrap:wrap!important;height:auto!important;min-height:42px}
+  .chatbot,.chat-panel,[data-chatbot]{max-width:calc(100vw - 32px)!important}
+}
+@media (max-width:640px){
+  body{font-size:15px}
+  .workspace{display:block!important}
+  .sidebar{width:100%!important;max-width:none!important;border-right:0!important;border-bottom:1px solid var(--line)!important;max-height:43vh;overflow:auto}
+  .sidebar-header,.sidebar-actions{padding-left:14px!important;padding-right:14px!important}
+  .editor-pane,.note-pane,main{width:100%!important;padding-left:16px!important;padding-right:16px!important;box-sizing:border-box}
+  .workspace-head{padding:14px 16px!important;align-items:center!important}
+  #title{font-size:clamp(1.8rem,8vw,2.6rem)!important}
+  .toolbar,[aria-label="Text formatting"]{gap:5px!important;padding:7px!important}
+  .toolbar button,[aria-label="Text formatting"] button{min-width:32px!important}
+  .chatbot,.chat-panel,[data-chatbot]{position:fixed!important;left:12px!important;right:12px!important;bottom:12px!important;width:auto!important;max-width:none!important}
+  .dialog{width:calc(100vw - 28px)!important;max-width:none!important;margin:auto!important}
+  .dialog-actions,.modal-actions{flex-wrap:wrap!important}
+  .sidebar-header{grid-template-columns:1fr 1fr!important}
+  .sidebar-header .new-note,.sidebar-header button:last-child{grid-column:span 2!important}
+}
+@media (max-width:400px){
+  .workspace-head{gap:6px!important}
+  .workspace-head .btn{padding:8px 10px!important}
+  #saved{font-size:13px!important}
+  .toolbar select{max-width:88px!important}
+}
+</style></body></html>
