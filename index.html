@@ -1744,21 +1744,20 @@ window.transcribeWithFallback = async formData => {
   const askJetson = async () => {
     const question = chatInput.value.trim();
     if (!question) return;
-    const note = active();
-    const prompt = 'Answer this question using only the active note below. If the answer is not in the note, say so.\\n\\nActive note title: ' + note.title + '\\nActive note: ' + document.querySelector('#editor').innerText + '\\n\\nQuestion: ' + question;
+    const notes = document.querySelector('#editor').innerText;
     chatInput.value = '';
     addMessage(question, true);
     const reply = addMessage('Thinking...');
     try {
-      const response = await fetch(JETSON_API_URL + '/rewrite', {
+      const response = await fetch(JETSON_API_URL + '/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: prompt })
+        body: JSON.stringify({ message: question, notes })
       });
       if (!response.ok) throw new Error(await readError(response));
       const data = await response.json();
-      if (!data.content) throw new Error('API response did not contain content.');
-      reply.textContent = data.content;
+      if (!data.response) throw new Error('API response did not contain response.');
+      reply.textContent = data.response;
     } catch (error) {
       console.error('Jetson chatbot error:', error);
       reply.textContent = 'Error: ' + error.message;
