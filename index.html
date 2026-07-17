@@ -2544,4 +2544,18 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
     };
   }
 })();
+</script><script>
+(() => {
+  const actions = document.querySelector('#todoPage .topbar .actions');
+  const settings = document.querySelector('#workspaceSettings');
+  if (!actions || !settings || document.querySelector('#todoSettings')) return;
+  const button = document.createElement('button');
+  button.className = 'btn gear';
+  button.id = 'todoSettings';
+  button.setAttribute('aria-label', 'Settings');
+  button.title = 'Settings';
+  button.textContent = '⚙';
+  button.onclick = () => settings.click();
+  actions.append(button);
+})();
 </script></body></html>
