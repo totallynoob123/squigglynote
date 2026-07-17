@@ -1710,6 +1710,7 @@ window.transcribeWithFallback = async formData => {
         transcript = data.text || data.content || data.transcript;
       } catch (tunnelError) {
         console.warn('Jetson transcription failed; trying Deepgram backup.', tunnelError);
+        window.apiTrace?.('Branch: Jetson transcription failed → Deepgram backup', tunnelError.message || '');
         const key = sessionStorage.getItem(DEEPGRAM_KEY_STORAGE)?.trim();
         if (!key) throw new Error('Jetson failed and no Deepgram backup key is entered.');
         setStatus('Jetson unavailable — using Deepgram backup...');
@@ -1813,6 +1814,7 @@ window.transcribeWithFallback = async formData => {
       return data.text || data.content || data.transcript;
     } catch (tunnelError) {
       console.warn('Jetson transcription failed; trying Deepgram backup.', tunnelError);
+      window.apiTrace?.('Branch: Jetson transcription failed → Deepgram backup', tunnelError.message || '');
       const key = sessionStorage.getItem('squiggly-deepgram-key-session')?.trim();
       if (!key) throw tunnelError;
       report('Jetson unavailable — using Deepgram backup...');
@@ -1979,27 +1981,31 @@ window.transcribeWithFallback = async formData => {
     if (!requests.length) { log.textContent = 'No tunnel requests yet. Use Make concise, Chat, or Transcribe selected.'; return; }
     requests.slice().reverse().forEach(entry => {
       const line = document.createElement('div');
-      line.style.cssText = 'padding:5px 2px;border-bottom:1px solid var(--line);color:' + (entry.error ? '#a33' : entry.status >= 200 && entry.status < 300 ? '#397047' : 'var(--ink)');
-      line.textContent = '[' + entry.time + '] ' + entry.method + ' ' + entry.url + ' — ' + (entry.error || 'HTTP ' + entry.status);
+      line.style.cssText = 'padding:6px 2px;border-bottom:1px solid var(--line);color:' + (entry.error ? '#a33' : entry.status >= 200 && entry.status < 300 ? '#397047' : 'var(--ink)');
+      line.textContent = '[' + entry.time + '] ' + entry.label + ' — ' + (entry.method ? entry.method + ' ' + entry.url + ' — ' : '') + (entry.error || (entry.status === null ? 'started' : 'HTTP ' + entry.status + (entry.duration ? ' · ' + entry.duration + 'ms' : '')));
       log.append(line);
     });
   };
   button.onclick = () => { renderLog(); dialog.showModal(); };
   document.querySelector('#closeApiTest').onclick = () => dialog.close();
   document.querySelector('#clearApiLog').onclick = () => { requests.length = 0; renderLog(); };
+  window.apiTrace = (label, error = '') => {
+    requests.push({ time: new Date().toLocaleTimeString(), label, method: '', url: '', status: null, error });
+    if (dialog.open) renderLog();
+  };
   const originalFetch = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = typeof input === 'string' ? input : input?.url || '';
     const method = init.method || (typeof input === 'object' && input?.method) || 'GET';
-    const isTunnel = url.startsWith(TUNNEL_BASE_URL);
-    const entry = isTunnel ? { time: new Date().toLocaleTimeString(), method: method.toUpperCase(), url, status: null, error: '' } : null;
+    const service = url.startsWith(TUNNEL_BASE_URL) ? 'Jetson tunnel' : url.startsWith('https://api.deepgram.com/') ? 'Deepgram backup' : url.startsWith('https://api.openai.com/') ? 'OpenAI backup' : '';
+    const entry = service ? { time: new Date().toLocaleTimeString(), label: service + ' request', method: method.toUpperCase(), url, status: null, error: '', started: performance.now(), duration: 0 } : null;
     if (entry) requests.push(entry);
     try {
       const response = await originalFetch(input, init);
-      if (entry) { entry.status = response.status; if (dialog.open) renderLog(); }
+      if (entry) { entry.status = response.status; entry.duration = Math.round(performance.now() - entry.started); if (dialog.open) renderLog(); }
       return response;
     } catch (error) {
-      if (entry) { entry.error = error.message || 'Network error'; if (dialog.open) renderLog(); }
+      if (entry) { entry.error = error.message || 'Network error'; entry.duration = Math.round(performance.now() - entry.started); if (dialog.open) renderLog(); }
       throw error;
     }
   };
