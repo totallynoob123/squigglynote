@@ -2355,4 +2355,12 @@ window.transcribeWithFallback = async formData => {
     } catch (error) { console.error('To-do SquigglyBot failed:', error); reply.textContent = 'Error: ' + error.message; }
   };
 })();
+</script><script>
+(() => {
+  const dialog = document.querySelector('#todoDialog');
+  const status = document.querySelector('#todoStatus');
+  if (!dialog || !status) return;
+  status.style.margin = '12px 0 0';
+  dialog.querySelector('p')?.insertAdjacentElement('afterend', status);
+})();
 </script></body></html>
