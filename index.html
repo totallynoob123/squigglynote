@@ -1958,4 +1958,50 @@ window.transcribeWithFallback = async formData => {
   removeOldImportButtons();
   new MutationObserver(removeOldImportButtons).observe(document.querySelector('.notes-actions'), { childList: true });
 })();
+</script><script>
+(() => {
+  const TUNNEL_BASE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const requests = [];
+  const header = document.querySelector('.workspace-head');
+  const button = document.createElement('button');
+  button.className = 'btn';
+  button.id = 'apiTestButton';
+  button.textContent = 'API test';
+  button.style.cssText = 'margin-left:auto;padding:6px 8px;font-size:.72rem';
+  header.insertBefore(button, document.querySelector('#saveState'));
+  document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="apiTestDialog" style="width:min(700px,calc(100% - 28px))"><div class="eyebrow">Jetson connection</div><h2 style="margin:8px 0">API test panel</h2><p>These are the exact routes used by the app.</p><div id="apiRoutes" style="display:grid;gap:7px;font:12px/1.45 ui-monospace,monospace;background:var(--soft);padding:12px;border-radius:9px"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px"><strong style="font-size:.86rem">Live request log</strong><button class="btn" id="clearApiLog" style="padding:5px 8px;font-size:.72rem">Clear</button></div><div id="apiRequestLog" style="margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:8px;font:12px/1.45 ui-monospace,monospace"></div><div class="dialog-actions"><button class="btn" id="closeApiTest">Done</button></div></dialog>');
+  const dialog = document.querySelector('#apiTestDialog');
+  const routes = document.querySelector('#apiRoutes');
+  const log = document.querySelector('#apiRequestLog');
+  routes.innerHTML = '<div>Rewrite&nbsp;&nbsp;&nbsp; POST ' + TUNNEL_BASE_URL + '/rewrite</div><div>Chat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; POST ' + TUNNEL_BASE_URL + '/chat</div><div>Transcribe POST ' + TUNNEL_BASE_URL + '/transcribe</div>';
+  const renderLog = () => {
+    log.replaceChildren();
+    if (!requests.length) { log.textContent = 'No tunnel requests yet. Use Make concise, Chat, or Transcribe selected.'; return; }
+    requests.slice().reverse().forEach(entry => {
+      const line = document.createElement('div');
+      line.style.cssText = 'padding:5px 2px;border-bottom:1px solid var(--line);color:' + (entry.error ? '#a33' : entry.status >= 200 && entry.status < 300 ? '#397047' : 'var(--ink)');
+      line.textContent = '[' + entry.time + '] ' + entry.method + ' ' + entry.url + ' — ' + (entry.error || 'HTTP ' + entry.status);
+      log.append(line);
+    });
+  };
+  button.onclick = () => { renderLog(); dialog.showModal(); };
+  document.querySelector('#closeApiTest').onclick = () => dialog.close();
+  document.querySelector('#clearApiLog').onclick = () => { requests.length = 0; renderLog(); };
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === 'string' ? input : input?.url || '';
+    const method = init.method || (typeof input === 'object' && input?.method) || 'GET';
+    const isTunnel = url.startsWith(TUNNEL_BASE_URL);
+    const entry = isTunnel ? { time: new Date().toLocaleTimeString(), method: method.toUpperCase(), url, status: null, error: '' } : null;
+    if (entry) requests.push(entry);
+    try {
+      const response = await originalFetch(input, init);
+      if (entry) { entry.status = response.status; if (dialog.open) renderLog(); }
+      return response;
+    } catch (error) {
+      if (entry) { entry.error = error.message || 'Network error'; if (dialog.open) renderLog(); }
+      throw error;
+    }
+  };
+})();
 </script></body></html>
