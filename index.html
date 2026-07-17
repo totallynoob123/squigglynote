@@ -1383,4 +1383,82 @@ img,video,audio{max-width:100%}
   render = () => { priorRender(); refreshHistory(); };
   refreshHistory();
 })();
+</script><script>
+(() => {
+  const head = document.querySelector('.workspace-head');
+  const saved = document.querySelector('#saveState');
+  if (!head || document.querySelector('#openVersionHistory')) return;
+  const open = document.createElement('button');
+  open.id = 'openVersionHistory';
+  open.className = 'btn';
+  open.textContent = 'Edit history';
+  open.style.cssText = 'margin-left:auto;padding:6px 8px;font-size:.72rem';
+  head.insertBefore(open, saved);
+
+  document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="versionHistoryDialog" style="width:min(820px,calc(100% - 28px))"><div class="eyebrow">Edit history</div><h2 style="margin:8px 0">Saved versions</h2><p>Choose a version to preview it before restoring.</p><div id="versionHistoryList" style="display:grid;gap:8px;max-height:52vh;overflow:auto"></div><div class="dialog-actions"><button class="btn" id="closeVersionHistory">Done</button></div></dialog>');
+  const dialog = document.querySelector('#versionHistoryDialog');
+  const list = document.querySelector('#versionHistoryList');
+  let timer;
+
+  const snapshots = note => Array.isArray(note.history) ? note.history : (note.history = []);
+  const record = () => {
+    const note = active();
+    const versions = snapshots(note);
+    const version = { title: note.title, body: note.body, time: Date.now() };
+    const last = versions[0];
+    if (!last || last.title !== version.title || last.body !== version.body) {
+      versions.unshift(version);
+      note.history = versions.slice(0, 20);
+      save('Version saved');
+    }
+  };
+  const renderDialog = () => {
+    const versions = snapshots(active());
+    list.replaceChildren();
+    if (!versions.length) {
+      list.innerHTML = '<div style="padding:18px;border:1px dashed var(--line);border-radius:9px;color:var(--muted)">No saved versions yet. Make an edit, then pause for a few seconds.</div>';
+      return;
+    }
+    versions.forEach((version, index) => {
+      const card = document.createElement('article');
+      card.style.cssText = 'padding:12px;border:1px solid var(--line);border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:12px';
+      const details = document.createElement('div');
+      details.style.minWidth = '0';
+      const name = document.createElement('strong');
+      name.textContent = version.title || 'Untitled note';
+      const time = document.createElement('div');
+      time.className = 'eyebrow';
+      time.style.marginTop = '4px';
+      time.textContent = 'Version ' + (index + 1) + ' · ' + new Date(version.time).toLocaleString();
+      details.append(name, time);
+      const preview = document.createElement('button');
+      preview.className = 'btn';
+      preview.textContent = 'Preview';
+      preview.onclick = () => {
+        document.querySelector('#historyPreviewTitle').textContent = version.title || 'Untitled note';
+        document.querySelector('#historyPreviewTime').textContent = 'Saved ' + new Date(version.time).toLocaleString();
+        document.querySelector('#historyPreviewBody').innerHTML = version.body || '<span style="color:var(--muted)">This version is empty.</span>';
+        document.querySelector('#restoreHistoryPreview').onclick = () => {
+          const note = active();
+          record();
+          note.title = version.title;
+          note.body = version.body;
+          note.edited = Date.now();
+          save('Previous version restored');
+          document.querySelector('#historyPreview').close();
+          render();
+          renderDialog();
+        };
+        document.querySelector('#historyPreview').showModal();
+      };
+      card.append(details, preview);
+      list.append(card);
+    });
+  };
+  open.onclick = () => { renderDialog(); dialog.showModal(); };
+  document.querySelector('#closeVersionHistory').onclick = () => dialog.close();
+  const schedule = () => { clearTimeout(timer); timer = setTimeout(record, 5000); };
+  document.querySelector('#editor').addEventListener('input', schedule);
+  document.querySelector('#title').addEventListener('input', schedule);
+})();
 </script></body></html>
