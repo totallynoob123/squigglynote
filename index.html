@@ -1239,7 +1239,7 @@ img,video,audio{max-width:100%}
     const now = Date.now();
     const last = lastSnapshotAt.get(note.id) || 0;
     // One snapshot per typing burst keeps history useful without filling storage.
-    if (now - last > 900) {
+    if (now - last > 5000) {
       note.history = Array.isArray(note.history) ? note.history : [];
       const latest = note.history[0];
       if (!latest || latest.title !== note.title || latest.body !== note.body) {
@@ -1359,7 +1359,7 @@ img,video,audio{max-width:100%}
     pendingSnapshot = setTimeout(() => {
       addVersion(active());
       refreshHistory();
-    }, 650);
+    }, 4000);
   };
   editor.addEventListener('input', queueSnapshot);
   title.addEventListener('input', queueSnapshot);
