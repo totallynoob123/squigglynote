@@ -1627,7 +1627,15 @@ window.transcribeWithFallback = async formData => {
       headers: { 'Authorization': 'Bearer ' + apiKey },
       body: backupForm
     });
-    if (!response.ok) throw new Error('API-key transcription backup returned HTTP ' + response.status);
+    if (!response.ok) {
+      let detail = '';
+      try {
+        const error = await response.json();
+        detail = error?.error?.message || error?.message || JSON.stringify(error);
+      } catch { detail = await response.text().catch(() => ''); }
+      const requestId = response.headers.get('x-request-id');
+      throw new Error('API-key transcription backup returned HTTP ' + response.status + (detail ? ': ' + detail : '') + (requestId ? ' (request ' + requestId + ')' : ''));
+    }
     return response;
   }
 };
