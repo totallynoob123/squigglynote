@@ -1639,4 +1639,108 @@ window.transcribeWithFallback = async formData => {
     return response;
   }
 };
+</script><script>
+(() => {
+  // Jetson API contract: POST /rewrite => { content }, POST /transcribe with form field "audio".
+  const JETSON_API_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const status = document.querySelector('#status');
+  const setStatus = (message, error = false) => {
+    status.textContent = message;
+    status.className = 'status' + (error ? ' error' : message === 'Done!' ? ' good' : '');
+  };
+  const readError = async response => {
+    let detail = '';
+    try { detail = (await response.json())?.detail || ''; } catch {}
+    return 'HTTP ' + response.status + (detail ? ': ' + detail : '');
+  };
+
+  document.querySelector('#concise').onclick = async () => {
+    const editor = document.querySelector('#editor');
+    const text = editor.innerText.trim();
+    if (!text) return setStatus('Write something first.', true);
+    const button = document.querySelector('#concise');
+    button.disabled = true; setStatus('Rewriting...');
+    try {
+      const response = await fetch(JETSON_API_URL + '/rewrite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = await response.json();
+      if (!data.content) throw new Error('API response did not contain content.');
+      editor.textContent = data.content;
+      edit();
+      setStatus('Done!');
+    } catch (error) {
+      console.error('Jetson rewrite error:', error);
+      setStatus('Error: ' + error.message, true);
+    } finally { button.disabled = false; }
+  };
+
+  const audioInput = document.createElement('input');
+  audioInput.type = 'file'; audioInput.accept = '.wav,audio/wav'; audioInput.hidden = true;
+  document.body.append(audioInput);
+  const transcribeButton = Array.from(document.querySelectorAll('.notes-actions button')).find(button => /transcribe/i.test(button.textContent));
+  if (transcribeButton) {
+    transcribeButton.textContent = 'Transcribe audio';
+    transcribeButton.onclick = () => audioInput.click();
+  }
+  audioInput.onchange = async () => {
+    const file = audioInput.files[0];
+    if (!file) return;
+    if (!/\.wav$/i.test(file.name)) { setStatus('Choose a WAV audio file.', true); return; }
+    setStatus('Transcribing...');
+    const formData = new FormData();
+    formData.append('audio', file, file.name);
+    try {
+      const response = await fetch(JETSON_API_URL + '/transcribe', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = await response.json();
+      const transcript = data.text || data.content || data.transcript;
+      if (!transcript) throw new Error('API response did not contain a transcript.');
+      const editor = document.querySelector('#editor');
+      editor.innerText += (editor.innerText ? '\n\n' : '') + transcript;
+      edit();
+      setStatus('Done!');
+    } catch (error) {
+      console.error('Jetson transcription error:', error);
+      setStatus('Error: ' + error.message, true);
+    } finally { audioInput.value = ''; }
+  };
+
+  const chatInput = document.querySelector('#notesChatInput');
+  const chatSend = document.querySelector('#notesChatSend');
+  const chatMessages = document.querySelector('#notesChatMessages');
+  const addMessage = (value, user = false) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:9px 10px;border-radius:8px;font-size:.86rem;line-height:1.45;white-space:pre-wrap;' + (user ? 'background:var(--ink);color:var(--paper);margin-left:28px' : 'background:var(--soft);margin-right:28px');
+    item.textContent = value; chatMessages.append(item); chatMessages.scrollTop = chatMessages.scrollHeight; return item;
+  };
+  const askJetson = async () => {
+    const question = chatInput.value.trim();
+    if (!question) return;
+    const note = active();
+    const prompt = 'Answer this question using only the active note below. If the answer is not in the note, say so.\\n\\nActive note title: ' + note.title + '\\nActive note: ' + document.querySelector('#editor').innerText + '\\n\\nQuestion: ' + question;
+    chatInput.value = '';
+    addMessage(question, true);
+    const reply = addMessage('Thinking...');
+    try {
+      const response = await fetch(JETSON_API_URL + '/rewrite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: prompt })
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = await response.json();
+      if (!data.content) throw new Error('API response did not contain content.');
+      reply.textContent = data.content;
+    } catch (error) {
+      console.error('Jetson chatbot error:', error);
+      reply.textContent = 'Error: ' + error.message;
+    }
+  };
+  chatSend.onclick = askJetson;
+  chatInput.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); askJetson(); } };
+})();
 </script></body></html>
