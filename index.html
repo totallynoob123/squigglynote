@@ -1464,7 +1464,8 @@ img,video,audio{max-width:100%}
 </script><script>
 (() => {
   // Replace MY_NGROK_URL with the public hostname shown by ngrok.
-  const API_URL = 'https://absolve-marigold-procedure.ngrok-free.dev/rewrite';
+  const API_BASE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const API_URL = API_BASE_URL + '/rewrite';
 
   document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="rewriteDialog"><div class="eyebrow">Jetson AI</div><h2 style="margin-top:8px">Rewrite text</h2><p>Review or edit the text, then send it to your rewrite API.</p><textarea id="rewriteText" rows="9" style="width:100%;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:10px;line-height:1.55;outline:0"></textarea><p id="rewriteStatus" role="status" style="min-height:20px;margin:10px 0 0"></p><div class="dialog-actions"><button class="btn" id="cancelRewrite">Cancel</button><button class="btn primary" id="sendRewrite">Rewrite</button></div></dialog>');
   const dialog = document.querySelector('#rewriteDialog');
@@ -1496,7 +1497,7 @@ img,video,audio{max-width:100%}
       });
       if (!response.ok) throw new Error('Request failed with HTTP ' + response.status);
       const data = await response.json();
-      const rewritten = data.text ?? data.rewritten_text ?? data.rewrite ?? data.result ?? data.output;
+      const rewritten = data.content ?? data.text ?? data.rewritten_text ?? data.rewrite ?? data.result ?? data.output;
       if (typeof rewritten !== 'string' || !rewritten.trim()) throw new Error('The API response did not contain rewritten text.');
       text.value = rewritten;
       document.querySelector('#editor').textContent = rewritten;
