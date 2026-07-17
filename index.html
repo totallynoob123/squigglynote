@@ -1212,6 +1212,10 @@ img,video,audio{max-width:100%}
   #saved{font-size:13px!important}
   .toolbar select{max-width:88px!important}
 }
+@media (min-width:1280px){
+  /* Keep the workspace proportional when a browser reports a very wide viewport. */
+  .app{width:calc(100% - 48px)!important;max-width:none!important}
+}
 </style><script>
 (() => {
   const landing = document.querySelector('#landing');
