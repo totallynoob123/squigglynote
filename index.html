@@ -1982,7 +1982,7 @@ window.transcribeWithFallback = async formData => {
     requests.slice().reverse().forEach(entry => {
       const line = document.createElement('div');
       line.style.cssText = 'padding:6px 2px;border-bottom:1px solid var(--line);color:' + (entry.error ? '#a33' : entry.status >= 200 && entry.status < 300 ? '#397047' : 'var(--ink)');
-      line.textContent = '[' + entry.time + '] ' + entry.label + ' — ' + (entry.method ? entry.method + ' ' + entry.url + ' — ' : '') + (entry.error || (entry.status === null ? 'started' : 'HTTP ' + entry.status + (entry.duration ? ' · ' + entry.duration + 'ms' : '')));
+      line.textContent = '[' + entry.time + '] ' + entry.label + '\n' + (entry.method ? entry.method + ' ' + entry.url + '\n' : '') + (entry.error || (entry.status === null ? 'Started' : 'HTTP ' + entry.status + (entry.statusText ? ' ' + entry.statusText : '') + (entry.duration ? ' · ' + entry.duration + 'ms' : '') + (entry.contentType ? '\nContent-Type: ' + entry.contentType : '')));
       log.append(line);
     });
   };
@@ -2002,7 +2002,7 @@ window.transcribeWithFallback = async formData => {
     if (entry) requests.push(entry);
     try {
       const response = await originalFetch(input, init);
-      if (entry) { entry.status = response.status; entry.duration = Math.round(performance.now() - entry.started); if (dialog.open) renderLog(); }
+      if (entry) { entry.status = response.status; entry.statusText = response.statusText; entry.contentType = response.headers.get('content-type') || ''; entry.duration = Math.round(performance.now() - entry.started); if (dialog.open) renderLog(); }
       return response;
     } catch (error) {
       if (entry) { entry.error = error.message || 'Network error'; entry.duration = Math.round(performance.now() - entry.started); if (dialog.open) renderLog(); }
@@ -2131,5 +2131,39 @@ window.transcribeWithFallback = async formData => {
   };
   chatSend.onclick = askWithFallback;
   chatInput.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); askWithFallback(); } };
+})();
+</script><script>
+(() => {
+  const dialog = document.querySelector('#apiTestDialog');
+  const title = dialog?.querySelector('h2');
+  const log = document.querySelector('#apiRequestLog');
+  if (!dialog || !title || !log) return;
+  dialog.style.cssText += ';position:fixed;min-width:360px;min-height:300px;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);resize:both;overflow:hidden';
+  title.style.cssText += ';cursor:grab;user-select:none';
+  log.style.cssText += ';height:220px;max-height:none;overflow:auto;overscroll-behavior:contain;white-space:pre-wrap;overflow-wrap:anywhere';
+  let drag = null;
+  title.addEventListener('pointerdown', event => {
+    const box = dialog.getBoundingClientRect();
+    drag = { x: event.clientX - box.left, y: event.clientY - box.top };
+    dialog.style.margin = '0';
+    dialog.style.left = box.left + 'px';
+    dialog.style.top = box.top + 'px';
+    title.setPointerCapture(event.pointerId);
+    title.style.cursor = 'grabbing';
+  });
+  title.addEventListener('pointermove', event => {
+    if (!drag) return;
+    const left = Math.max(8, Math.min(window.innerWidth - dialog.offsetWidth - 8, event.clientX - drag.x));
+    const top = Math.max(8, Math.min(window.innerHeight - dialog.offsetHeight - 8, event.clientY - drag.y));
+    dialog.style.left = left + 'px';
+    dialog.style.top = top + 'px';
+  });
+  const stop = event => {
+    drag = null;
+    title.style.cursor = 'grab';
+    if (title.hasPointerCapture(event.pointerId)) title.releasePointerCapture(event.pointerId);
+  };
+  title.addEventListener('pointerup', stop);
+  title.addEventListener('pointercancel', stop);
 })();
 </script></body></html>
