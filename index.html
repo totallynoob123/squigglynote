@@ -733,7 +733,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
   const toggle = document.createElement('button');
   toggle.className = 'btn';
   toggle.id = 'notesChatToggle';
-  toggle.textContent = 'Ask notes';
+  toggle.textContent = 'Ask SquigglyBot';
   toggle.setAttribute('aria-expanded', 'false');
   const saveState = document.querySelector('#saveState');
   header.insertBefore(toggle, saveState);
@@ -2122,7 +2122,7 @@ window.transcribeWithFallback = async formData => {
       } catch (jetsonError) {
         window.apiTrace?.('Branch: Jetson chat failed → OpenAI backup', jetsonError.message || '');
         reply.textContent = 'Jetson unavailable — using OpenAI backup...';
-        answer = await openAIChat('Answer using only the supplied note. If the answer is not in the note, say so. Note:\n' + notes, message);
+        answer = await openAIChat('You are SquigglyBot, a helpful general assistant. The following active note is optional context; use it when useful, but answer the user normally.\n\nActive note:\n' + notes, message);
       }
       reply.textContent = answer;
     } catch (error) {
@@ -2253,5 +2253,16 @@ window.transcribeWithFallback = async formData => {
   if (routes) routes.remove();
   const controls = document.querySelector('#jetsonConnectionState')?.parentElement;
   if (controls) controls.style.margin = '4px 0 10px';
+})();
+</script><script>
+(() => {
+  const panel = document.querySelector('#notesChatPanel');
+  if (!panel) return;
+  const heading = panel.querySelector('strong');
+  const intro = panel.querySelector('#notesChatMessages p');
+  const input = panel.querySelector('#notesChatInput');
+  if (heading) heading.textContent = 'Ask SquigglyBot';
+  if (intro) intro.textContent = 'Ask anything. Your active note is included as helpful context.';
+  if (input) input.placeholder = 'Ask SquigglyBot…';
 })();
 </script></body></html>
