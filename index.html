@@ -2076,13 +2076,14 @@ window.transcribeWithFallback = async formData => {
     try {
       let result;
       try {
-        const response = await fetch(JETSON_BASE_URL + '/rewrite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+        const concisePrompt = 'Rewrite the note below to be concise while preserving its meaning. Return only the revised text.\n\nNote:\n' + text;
+        const response = await fetch(JETSON_BASE_URL + '/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: concisePrompt, notes: text }) });
         if (!response.ok) throw new Error('Jetson returned HTTP ' + response.status);
         const data = await response.json();
-        result = data.content;
-        if (!result) throw new Error('Jetson response did not contain content.');
+        result = data.response;
+        if (!result) throw new Error('Jetson response did not contain response.');
       } catch (jetsonError) {
-        window.apiTrace?.('Branch: Jetson rewrite failed → OpenAI backup', jetsonError.message || '');
+        window.apiTrace?.('Branch: Jetson /chat concise request failed → OpenAI backup', jetsonError.message || '');
         rewriteStatus.textContent = 'Jetson unavailable — using OpenAI backup...';
         result = await openAIChat('Rewrite the user text to be concise while preserving its meaning. Return only the revised text.', text);
       }
