@@ -2457,6 +2457,22 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
     if (match) try { return JSON.parse(match[0]); } catch {}
     return null;
   };
+  const noteChangeFrom = raw => {
+    const json = objectFrom(raw);
+    if (json) return { answer: json.answer || '', replacement: json.replacement ?? json.replacment ?? null };
+    const match = String(raw).match(/ANSWER:\s*([\s\S]*?)\s*REPLACEMENT:\s*([\s\S]*)$/i);
+    if (!match) return { answer: String(raw), replacement: null };
+    const replacement = match[2].trim();
+    return { answer: match[1].trim(), replacement: /^NO_CHANGE$/i.test(replacement) ? null : replacement };
+  };
+  const taskChangeFrom = raw => {
+    const json = objectFrom(raw);
+    if (json) return { answer: json.answer || '', tasks: Array.isArray(json.tasks) ? json.tasks : null };
+    const match = String(raw).match(/ANSWER:\s*([\s\S]*?)\s*TASKS:\s*([\s\S]*)$/i);
+    if (!match) return { answer: String(raw), tasks: null };
+    const taskText = match[2].trim();
+    return { answer: match[1].trim(), tasks: /^NO_CHANGE$/i.test(taskText) ? null : taskText.split(/\r?\n/).map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim()).filter(Boolean) };
+  };
   const preview = (title, before, after, apply) => {
     const wrap = document.createElement('div'); wrap.className = 'change-preview';
     const header = document.createElement('header'); header.textContent = title; wrap.append(header);
@@ -2490,9 +2506,9 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
       notesInput.value = '';
       const reply = document.createElement('div'); reply.style.cssText = 'padding:9px 10px;border-radius:8px;background:var(--soft);margin-right:28px;font-size:.86rem;white-space:pre-wrap'; reply.textContent = 'Preparing a change preview…'; notesMessages.append(reply);
       try {
-        const raw = await request('The user has given permission to propose an edit to their active note. Return JSON only: {"answer":"short explanation","replacement":"complete replacement note text or null"}. Only set replacement when the request asks to change the note.\n\nCurrent note:\n' + before + '\n\nRequest: ' + question, before);
-        const result = objectFrom(raw);
-        reply.textContent = result?.answer || raw;
+        const raw = await request('The user has given permission to propose an edit to their active note. Use exactly this format, with no code fence:\nANSWER: short explanation\nREPLACEMENT: complete replacement note text, or NO_CHANGE\nOnly provide a replacement when the request asks to change the note.\n\nCurrent note:\n' + before + '\n\nRequest: ' + question, before);
+        const result = noteChangeFrom(raw);
+        reply.textContent = result.answer || raw;
         if (result?.replacement && result.replacement !== before) {
           const change = preview('Proposed note changes', before, result.replacement, () => {
             editor.innerText = result.replacement;
@@ -2527,10 +2543,10 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
       const before = [...todoItems.querySelectorAll('input[type="text"]')].map(input => input.value.trim()).filter(Boolean);
       todoInput.value = ''; todoReply.style.display = 'block'; todoReply.textContent = 'Preparing a change preview…';
       try {
-        const raw = await request('The user has given permission to propose changes to this to-do list. Return JSON only: {"answer":"short explanation","tasks":["complete task text"]}. Keep tasks unchanged unless the user asks to change them.\n\nCurrent tasks:\n' + before.map(task => '- ' + task).join('\n') + '\n\nRequest: ' + question, before.join('\n'));
-        const result = objectFrom(raw);
-        todoReply.textContent = result?.answer || raw;
-        const after = Array.isArray(result?.tasks) ? result.tasks.map(task => String(task).trim()).filter(Boolean) : null;
+        const raw = await request('The user has given permission to propose changes to this to-do list. Use exactly this format, with no code fence:\nANSWER: short explanation\nTASKS: one complete task per line beginning with a hyphen, or NO_CHANGE\nKeep tasks unchanged unless the user asks to change them.\n\nCurrent tasks:\n' + before.map(task => '- ' + task).join('\n') + '\n\nRequest: ' + question, before.join('\n'));
+        const result = taskChangeFrom(raw);
+        todoReply.textContent = result.answer || raw;
+        const after = Array.isArray(result.tasks) ? result.tasks.map(task => String(task).trim()).filter(Boolean) : null;
         if (after && after.join('\n') !== before.join('\n')) {
           const change = preview('Proposed task changes', before.join('\n'), after.join('\n'), () => {
             while (todoItems.querySelector('.todo-item .btn')) todoItems.querySelector('.todo-item .btn').click();
