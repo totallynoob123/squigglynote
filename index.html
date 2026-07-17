@@ -1212,6 +1212,8 @@ img,video,audio{max-width:100%}
   #saved{font-size:13px!important}
   .toolbar select{max-width:88px!important}
 }
+/* Notes must stay inside the editor even for a very long word or pasted URL. */
+#editor.editor{width:100%;max-width:100%;white-space:pre-wrap!important;overflow-wrap:anywhere;word-break:break-word}
 @media (min-width:1280px){
   /* Keep the workspace proportional when a browser reports a very wide viewport. */
   .app{width:calc(100% - 48px)!important;max-width:none!important}
