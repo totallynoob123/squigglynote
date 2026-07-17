@@ -1511,4 +1511,100 @@ img,video,audio{max-width:100%}
     }
   };
 })();
+</script><script>
+(() => {
+  const TUNNEL_REWRITE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev/rewrite';
+  const OPENAI_KEY_STORAGE = 'squiggly-openai-key-session';
+  const tunnelInput = document.querySelector('#apiTunnel');
+  if (!tunnelInput.value.trim()) {
+    tunnelInput.value = TUNNEL_REWRITE_URL;
+    tunnelInput.dispatchEvent(new Event('input'));
+  }
+  const apiKey = () => sessionStorage.getItem(OPENAI_KEY_STORAGE)?.trim();
+  const openAIRewrite = async text => {
+    const key = apiKey();
+    if (!key) throw new Error('Tunnel request failed and no API-key backup is configured.');
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: 'gpt-5-mini', messages: [{ role: 'system', content: 'Rewrite the user text to be concise while preserving its meaning. Return only the revised text.' }, { role: 'user', content: text }] })
+    });
+    if (!response.ok) throw new Error('API-key backup returned HTTP ' + response.status);
+    const data = await response.json();
+    const result = data.choices?.[0]?.message?.content;
+    if (!result) throw new Error('API-key backup did not return text.');
+    return result;
+  };
+
+  document.querySelector('#sendRewrite').onclick = async () => {
+    const textBox = document.querySelector('#rewriteText');
+    const status = document.querySelector('#rewriteStatus');
+    const button = document.querySelector('#sendRewrite');
+    const value = textBox.value.trim();
+    if (!value) { status.textContent = 'Enter text to rewrite.'; return; }
+    button.disabled = true; status.textContent = 'Rewriting…';
+    try {
+      let rewritten;
+      try {
+        const response = await fetch(TUNNEL_REWRITE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
+        if (!response.ok) throw new Error('Tunnel returned HTTP ' + response.status);
+        const data = await response.json();
+        rewritten = data.content ?? data.text ?? data.rewritten_text ?? data.result;
+        if (!rewritten) throw new Error('Tunnel response did not contain content.');
+      } catch (tunnelError) {
+        console.warn('Tunnel rewrite failed; trying API-key backup.', tunnelError);
+        status.textContent = 'Tunnel unavailable — trying API-key backup…';
+        rewritten = await openAIRewrite(value);
+      }
+      textBox.value = rewritten;
+      document.querySelector('#editor').textContent = rewritten;
+      edit();
+      status.textContent = 'Done';
+    } catch (error) {
+      console.error('Rewrite failed:', error);
+      status.textContent = 'Error: ' + error.message;
+    } finally { button.disabled = false; }
+  };
+
+  const chatInput = document.querySelector('#notesChatInput');
+  const chatSend = document.querySelector('#notesChatSend');
+  const chatMessages = document.querySelector('#notesChatMessages');
+  const addChatMessage = (text, user = false) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:9px 10px;border-radius:8px;font-size:.86rem;line-height:1.45;white-space:pre-wrap;' + (user ? 'background:var(--ink);color:var(--paper);margin-left:28px' : 'background:var(--soft);margin-right:28px');
+    item.textContent = text; chatMessages.append(item); chatMessages.scrollTop = chatMessages.scrollHeight; return item;
+  };
+  const askTunnelFirst = async () => {
+    const question = chatInput.value.trim();
+    if (!question) return;
+    chatInput.value = ''; addChatMessage(question, true);
+    const waiting = addChatMessage('Thinking…');
+    const note = active();
+    const notes = [{ title: note.title, body: note.body }];
+    try {
+      let data;
+      try {
+        const url = new URL(TUNNEL_REWRITE_URL); url.pathname = '/chat';
+        const response = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: question, notes, activeNote: note, allowEdit: true }) });
+        if (!response.ok) throw new Error('Tunnel returned HTTP ' + response.status);
+        data = await response.json();
+      } catch (tunnelError) {
+        console.warn('Tunnel chat failed; trying API-key backup.', tunnelError);
+        const key = apiKey();
+        if (!key) throw new Error('Tunnel request failed and no API-key backup is configured.');
+        const response = await fetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify({ model: 'gpt-5-mini', messages: [{ role: 'system', content: 'Answer the question using only this active note: ' + JSON.stringify(notes) }, { role: 'user', content: question }] }) });
+        if (!response.ok) throw new Error('API-key backup returned HTTP ' + response.status);
+        data = await response.json();
+      }
+      const answer = data.answer ?? data.content ?? data.text ?? data.result ?? data.choices?.[0]?.message?.content;
+      if (!answer) throw new Error('No answer returned.');
+      waiting.textContent = answer;
+    } catch (error) {
+      console.error('Chat failed:', error);
+      waiting.textContent = 'Error: ' + error.message;
+    }
+  };
+  chatSend.onclick = askTunnelFirst;
+  chatInput.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); askTunnelFirst(); } };
+})();
 </script></body></html>
