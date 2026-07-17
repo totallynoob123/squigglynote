@@ -2166,7 +2166,15 @@ window.transcribeWithFallback = async formData => {
   title.addEventListener('pointerup', stop);
   title.addEventListener('pointercancel', stop);
 })();
-<style>
+<script>
+(() => {
+  const button = document.querySelector('#openVersionHistory');
+  const panel = document.querySelector('.timeline');
+  if (!button || !panel) return;
+  button.style.cssText = 'width:100%;margin:2px 0 12px;padding:8px 10px;font-size:.74rem';
+  panel.querySelector('h2')?.after(button);
+})();
+</script><style>
 #apiTestDialog{width:min(460px,calc(100vw - 24px))!important;min-width:300px!important;min-height:240px!important}
 #apiTestDialog::backdrop{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 #apiTestDialog #apiRequestLog{height:150px!important}
