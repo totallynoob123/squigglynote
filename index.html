@@ -1464,7 +1464,7 @@ img,video,audio{max-width:100%}
 </script><script>
 (() => {
   // Replace MY_NGROK_URL with the public hostname shown by ngrok.
-  const API_URL = 'https://MY_NGROK_URL.ngrok-free.app/rewrite';
+  const API_URL = 'https://absolve-marigold-procedure.ngrok-free.dev/rewrite';
 
   document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="rewriteDialog"><div class="eyebrow">Jetson AI</div><h2 style="margin-top:8px">Rewrite text</h2><p>Review or edit the text, then send it to your rewrite API.</p><textarea id="rewriteText" rows="9" style="width:100%;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:10px;line-height:1.55;outline:0"></textarea><p id="rewriteStatus" role="status" style="min-height:20px;margin:10px 0 0"></p><div class="dialog-actions"><button class="btn" id="cancelRewrite">Cancel</button><button class="btn primary" id="sendRewrite">Rewrite</button></div></dialog>');
   const dialog = document.querySelector('#rewriteDialog');
