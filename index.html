@@ -2422,4 +2422,17 @@ window.transcribeWithFallback = async formData => {
   document.querySelector('#startWriting').addEventListener('click', () => todoPage.classList.remove('visible'));
   document.querySelector('#back').addEventListener('click', () => todoPage.classList.remove('visible'));
 })();
+</script><script>
+(() => {
+  const notesActions = document.querySelector('#app .topbar .actions');
+  const todoLauncher = document.querySelector('#openTodoList');
+  const todoPage = document.querySelector('#todoPage');
+  if (!notesActions || !todoLauncher || !todoPage || document.querySelector('#openTodoFromNotes')) return;
+  const button = document.createElement('button');
+  button.className = 'btn';
+  button.id = 'openTodoFromNotes';
+  button.textContent = 'To-do list';
+  notesActions.insertBefore(button, notesActions.querySelector('#back'));
+  button.onclick = () => todoLauncher.click();
+})();
 </script></body></html>
