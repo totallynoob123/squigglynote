@@ -2235,4 +2235,15 @@ window.transcribeWithFallback = async formData => {
   };
   sync();
 })();
+<style>
+#apiTestDialog{overflow:auto!important;overscroll-behavior:contain}
+</style><script>
+(() => {
+  const dialog = document.querySelector('#apiTestDialog');
+  const exit = document.querySelector('#closeApiTest');
+  if (!dialog || !exit) return;
+  exit.textContent = 'Exit';
+  exit.setAttribute('aria-label', 'Exit API test panel');
+  exit.onclick = () => dialog.close();
+})();
 </script></body></html>
