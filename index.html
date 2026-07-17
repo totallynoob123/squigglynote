@@ -1584,8 +1584,8 @@ img,video,audio{max-width:100%}
     try {
       let data;
       try {
-        const url = new URL(TUNNEL_REWRITE_URL); url.pathname = '/chat';
-        const response = await fetch(url.toString(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: question, notes, activeNote: note, allowEdit: true }) });
+        const prompt = 'Use only this active note to answer the question. If the answer is not in the note, say so.\\n\\nActive note: ' + JSON.stringify(notes) + '\\n\\nQuestion: ' + question;
+        const response = await fetch(TUNNEL_REWRITE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: prompt }) });
         if (!response.ok) throw new Error('Tunnel returned HTTP ' + response.status);
         data = await response.json();
       } catch (tunnelError) {
