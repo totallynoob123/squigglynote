@@ -2235,7 +2235,7 @@ window.transcribeWithFallback = async formData => {
   };
   sync();
 })();
-<style>
+</script><style>
 #apiTestDialog{overflow:auto!important;overscroll-behavior:contain}
 </style><script>
 (() => {
@@ -2245,5 +2245,12 @@ window.transcribeWithFallback = async formData => {
   exit.textContent = 'Exit';
   exit.setAttribute('aria-label', 'Exit API test panel');
   exit.onclick = () => dialog.close();
+})();
+</script><script>
+(() => {
+  const routes = document.querySelector('#apiRoutes');
+  if (routes) routes.remove();
+  const controls = document.querySelector('#jetsonConnectionState')?.parentElement;
+  if (controls) controls.style.margin = '4px 0 10px';
 })();
 </script></body></html>
