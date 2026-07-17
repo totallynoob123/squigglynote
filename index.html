@@ -1229,4 +1229,73 @@ img,video,audio{max-width:100%}
   credits.style.cssText = 'padding:42px 0 18px;text-align:center;color:var(--muted);font-size:.78rem;letter-spacing:.02em';
   shell.append(credits);
 })();
+</script><script>
+(() => {
+  const originalEdit = edit;
+  const lastSnapshotAt = new Map();
+
+  edit = () => {
+    const note = active();
+    const now = Date.now();
+    const last = lastSnapshotAt.get(note.id) || 0;
+    // One snapshot per typing burst keeps history useful without filling storage.
+    if (now - last > 900) {
+      note.history = Array.isArray(note.history) ? note.history : [];
+      const latest = note.history[0];
+      if (!latest || latest.title !== note.title || latest.body !== note.body) {
+        note.history.unshift({ title: note.title, body: note.body, time: now });
+        note.history = note.history.slice(0, 20);
+      }
+      lastSnapshotAt.set(note.id, now);
+    }
+    originalEdit();
+  };
+  document.querySelector('#title').oninput = edit;
+  document.querySelector('#editor').oninput = edit;
+
+  const priorRender = render;
+  render = () => {
+    priorRender();
+    const note = active();
+    const timeline = document.querySelector('#timeline');
+    if (!note || !timeline || !document.querySelector('#editor').isContentEditable) return;
+    const history = Array.isArray(note.history) ? note.history : [];
+    timeline.replaceChildren();
+    const created = document.createElement('li');
+    created.textContent = 'Created ' + new Date(note.created).toLocaleString();
+    timeline.append(created);
+    if (!history.length) {
+      const empty = document.createElement('li');
+      empty.textContent = 'Your saved edit versions will appear here.';
+      timeline.append(empty);
+      return;
+    }
+    history.slice(0, 10).forEach((version, index) => {
+      const item = document.createElement('li');
+      item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px';
+      const label = document.createElement('span');
+      label.textContent = 'Version ' + (index + 1) + ' · ' + new Date(version.time).toLocaleString();
+      const restore = document.createElement('button');
+      restore.className = 'btn';
+      restore.textContent = 'Restore';
+      restore.style.cssText = 'padding:4px 7px;font-size:.7rem';
+      restore.onclick = () => {
+        const current = active();
+        current.history = Array.isArray(current.history) ? current.history : [];
+        current.history.unshift({ title: current.title, body: current.body, time: Date.now() });
+        current.history = current.history.slice(0, 20);
+        current.title = version.title;
+        current.body = version.body;
+        current.edited = Date.now();
+        current.events = Array.isArray(current.events) ? current.events : [];
+        current.events.unshift({ kind: 'Restored a previous version', time: current.edited });
+        save('Previous version restored');
+        render();
+      };
+      item.append(label, restore);
+      timeline.append(item);
+    });
+  };
+  render();
+})();
 </script></body></html>
