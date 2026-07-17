@@ -1949,4 +1949,14 @@ window.transcribeWithFallback = async formData => {
     audioPicker.value = '';
   };
 })();
+</script><script>
+(() => {
+  const removeOldImportButtons = () => {
+    document.querySelectorAll('.notes-actions button').forEach(button => {
+      if (/^Import (notes|audio)$/i.test(button.textContent)) button.remove();
+    });
+  };
+  removeOldImportButtons();
+  new MutationObserver(removeOldImportButtons).observe(document.querySelector('.notes-actions'), { childList: true });
+})();
 </script></body></html>
