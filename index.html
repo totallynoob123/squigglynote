@@ -2004,4 +2004,41 @@ window.transcribeWithFallback = async formData => {
     }
   };
 })();
+</script><script>
+(() => {
+  const button = document.querySelector('#apiTestButton');
+  if (!button) return;
+  button.style.cssText = 'position:fixed;right:22px;bottom:22px;z-index:1000;padding:10px 13px;border-radius:999px;background:var(--paper);box-shadow:0 8px 24px #0003;touch-action:none';
+  button.title = 'Drag to move · Click to open API test';
+  let drag = null, moved = false;
+  button.addEventListener('pointerdown', event => {
+    const bounds = button.getBoundingClientRect();
+    drag = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    moved = false;
+    button.setPointerCapture(event.pointerId);
+  });
+  button.addEventListener('pointermove', event => {
+    if (!drag) return;
+    const left = Math.max(8, Math.min(window.innerWidth - button.offsetWidth - 8, event.clientX - drag.x));
+    const top = Math.max(8, Math.min(window.innerHeight - button.offsetHeight - 8, event.clientY - drag.y));
+    if (Math.abs(left - button.offsetLeft) > 3 || Math.abs(top - button.offsetTop) > 3) moved = true;
+    button.style.left = left + 'px';
+    button.style.top = top + 'px';
+    button.style.right = 'auto';
+    button.style.bottom = 'auto';
+  });
+  const stop = event => {
+    if (!drag) return;
+    drag = null;
+    if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
+  };
+  button.addEventListener('pointerup', stop);
+  button.addEventListener('pointercancel', stop);
+  button.addEventListener('click', event => {
+    if (!moved) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    moved = false;
+  }, true);
+})();
 </script></body></html>
