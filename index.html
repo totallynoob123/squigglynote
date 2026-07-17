@@ -1298,4 +1298,89 @@ img,video,audio{max-width:100%}
   };
   render();
 })();
+</script><script>
+(() => {
+  let pendingSnapshot;
+  let previewVersion = null;
+  const editor = document.querySelector('#editor');
+  const title = document.querySelector('#title');
+  const timeline = document.querySelector('#timeline');
+
+  document.body.insertAdjacentHTML('beforeend', '<dialog class="dialog" id="historyPreview" style="width:min(760px,calc(100% - 28px))"><div class="eyebrow">Edit history</div><h2 id="historyPreviewTitle" style="margin:8px 0"></h2><p id="historyPreviewTime"></p><div id="historyPreviewBody" style="min-height:180px;max-height:48vh;overflow:auto;border:1px solid var(--line);border-radius:9px;padding:14px;line-height:1.7"></div><div class="dialog-actions"><button class="btn" id="closeHistoryPreview">Cancel</button><button class="btn primary" id="restoreHistoryPreview">Restore this version</button></div></dialog>');
+  const dialog = document.querySelector('#historyPreview');
+
+  const versions = note => Array.isArray(note.history) ? note.history : (note.history = []);
+  const addVersion = note => {
+    const list = versions(note);
+    const candidate = { title: note.title, body: note.body, time: Date.now() };
+    const latest = list[0];
+    if (!latest || latest.title !== candidate.title || latest.body !== candidate.body) {
+      list.unshift(candidate);
+      note.history = list.slice(0, 20);
+      save('Version saved');
+    }
+  };
+
+  const refreshHistory = () => {
+    const note = active();
+    if (!note || !timeline || !editor.isContentEditable) return;
+    timeline.replaceChildren();
+    const heading = document.createElement('li');
+    heading.textContent = 'Edit history';
+    heading.style.cssText = 'font-weight:700;color:var(--ink)';
+    timeline.append(heading);
+    const list = versions(note);
+    if (!list.length) {
+      const empty = document.createElement('li');
+      empty.textContent = 'Start editing to save versions.';
+      timeline.append(empty);
+      return;
+    }
+    list.slice(0, 10).forEach((version, index) => {
+      const item = document.createElement('li');
+      const view = document.createElement('button');
+      view.className = 'btn';
+      view.textContent = 'Version ' + (index + 1) + ' · ' + new Date(version.time).toLocaleString();
+      view.style.cssText = 'width:100%;text-align:left;padding:7px 8px;font-size:.72rem';
+      view.onclick = () => {
+        previewVersion = version;
+        document.querySelector('#historyPreviewTitle').textContent = version.title || 'Untitled note';
+        document.querySelector('#historyPreviewTime').textContent = 'Saved ' + new Date(version.time).toLocaleString();
+        document.querySelector('#historyPreviewBody').innerHTML = version.body || '<span style="color:var(--muted)">This version is empty.</span>';
+        dialog.showModal();
+      };
+      item.append(view);
+      timeline.append(item);
+    });
+  };
+
+  const queueSnapshot = () => {
+    clearTimeout(pendingSnapshot);
+    pendingSnapshot = setTimeout(() => {
+      addVersion(active());
+      refreshHistory();
+    }, 650);
+  };
+  editor.addEventListener('input', queueSnapshot);
+  title.addEventListener('input', queueSnapshot);
+
+  document.querySelector('#closeHistoryPreview').onclick = () => dialog.close();
+  document.querySelector('#restoreHistoryPreview').onclick = () => {
+    if (!previewVersion) return;
+    const note = active();
+    addVersion(note);
+    note.title = previewVersion.title;
+    note.body = previewVersion.body;
+    note.edited = Date.now();
+    note.events = Array.isArray(note.events) ? note.events : [];
+    note.events.unshift({ kind: 'Restored a previous version', time: note.edited });
+    save('Previous version restored');
+    dialog.close();
+    render();
+  };
+
+  const priorRender = render;
+  render = () => { priorRender(); refreshHistory(); };
+  refreshHistory();
+})();
 </script></body></html>
