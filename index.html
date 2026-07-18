@@ -2617,12 +2617,54 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
     try {
       const response = await fetch(endpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice: document.querySelector('#ttsVoice').value }) });
       if (!response.ok) throw new Error('Jetson returned HTTP ' + response.status + ': ' + await response.text());
+      const blob = await response.blob();
+      const recording = { id: crypto.randomUUID(), name: 'Read aloud — ' + (document.querySelector('#title').value.trim() || 'Untitled note'), created: Date.now(), blob };
+      await new Promise((resolve, reject) => {
+        const request = indexedDB.open('squiggly-recordings-' + OWNER, 1);
+        request.onsuccess = () => {
+          const write = request.result.transaction('recordings', 'readwrite').objectStore('recordings').put(recording);
+          write.onsuccess = () => resolve();
+          write.onerror = () => reject(write.error);
+        };
+        request.onerror = () => reject(request.error);
+      });
+      window.dispatchEvent(new CustomEvent('squiggly-audio-saved', { detail: recording }));
       if (audioUrl) URL.revokeObjectURL(audioUrl);
-      audioUrl = URL.createObjectURL(await response.blob());
+      audioUrl = URL.createObjectURL(blob);
       player.src = audioUrl; player.style.display = 'block'; await player.play();
       status.textContent = 'Finished.'; status.className = 'status good';
     } catch (error) { console.error('TTS failed:', error); status.textContent = 'Error: ' + error.message; status.className = 'status error'; }
     finally { event.currentTarget.disabled = false; }
   };
+})();
+</script><script>
+(() => {
+  const tabs = document.querySelector('#tabs');
+  const isAudioOpen = () => document.querySelector('.pane-tab.active')?.dataset.pane === 'audio';
+  const addGeneratedRow = recording => {
+    if (!tabs || !isAudioOpen() || tabs.textContent.includes(recording.name)) return;
+    const row = document.createElement('div');
+    row.className = 'audio-library-row';
+    row.dataset.generatedAudioId = recording.id;
+    const name = document.createElement('div');
+    name.className = 'tab';
+    name.textContent = recording.name;
+    const meta = document.createElement('div');
+    meta.style.cssText = 'font-size:.72rem;color:var(--muted)';
+    meta.textContent = new Date(recording.created).toLocaleString() + ' · Generated speech';
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.src = URL.createObjectURL(recording.blob);
+    row.append(name, meta, audio);
+    tabs.prepend(row);
+  };
+  window.addEventListener('squiggly-audio-saved', event => addGeneratedRow(event.detail));
+  document.querySelector('.pane-tab[data-pane="audio"]')?.addEventListener('click', () => {
+    const request = indexedDB.open('squiggly-recordings-' + OWNER, 1);
+    request.onsuccess = () => {
+      const get = request.result.transaction('recordings').objectStore('recordings').getAll();
+      get.onsuccess = () => setTimeout(() => get.result.filter(file => file.name?.startsWith('Read aloud —')).forEach(addGeneratedRow), 0);
+    };
+  });
 })();
 </script></body></html>
