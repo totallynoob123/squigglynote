@@ -775,7 +775,7 @@ row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : ''; ro
       const response = await fetch(endpoint, apiKey ? {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ model: 'gpt-5-mini', messages: [{ role: 'system', content: 'Answer questions about the user\'s notes. Be concise and use only the supplied note context. If the answer is not in the notes, say so. Notes: ' + context }, { role: 'user', content: question }] })
+        body: JSON.stringify({ model: 'gpt-5-mini', messages: [{ role: 'system', content: 'Answer any question the user gives you. If they ask a question about something that is in the notes then site the notes in your answer. Notes: ' + context }, { role: 'user', content: question }] })
       } : {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
