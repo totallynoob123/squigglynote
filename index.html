@@ -2669,9 +2669,9 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
 })();
 </script>
 <style>
-#chatPage .chat-card{width:min(1080px,calc(100% - 8px));min-height:calc(100vh - 150px);margin:8px auto 0;padding:30px}
-#chatPage #notesChatPanel{position:static!important;width:100%!important;max-width:none;padding:0;border:0;box-shadow:none;background:transparent}
-#chatPage #notesChatMessages{max-height:calc(100vh - 310px);min-height:420px;padding:8px}
+#chatPage .chat-card{width:min(1080px,calc(100% - 8px));min-height:calc(100vh - 150px);margin:8px auto 0;padding:30px;display:flex}
+#chatPage #notesChatPanel{position:static!important;width:100%!important;max-width:none;min-height:calc(100vh - 210px);padding:0;border:0;box-shadow:none;background:transparent;display:flex;flex-direction:column}
+#chatPage #notesChatMessages{flex:1;max-height:none;min-height:420px;padding:8px}
 </style>
 <script>
 (() => {
@@ -2716,7 +2716,7 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
   headerActions.insertBefore(chatButton, headerActions.querySelector('#back'));
   chatButton.onclick = showChat;
   if (chatToggle) {
-    chatToggle.textContent = 'Open chat';
+    chatToggle.textContent = 'Ask SquigglyBot';
     chatToggle.onclick = showChat;
   }
   document.querySelector('#chatOpenNotes').onclick = showNotes;
