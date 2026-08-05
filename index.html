@@ -2667,4 +2667,63 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
     };
   });
 })();
-</script></body></html>
+</script>
+<style>
+#chatPage .chat-card{width:min(860px,100%);margin:8px auto 0;padding:24px}
+#chatPage #notesChatPanel{position:static!important;width:100%!important;max-width:none;padding:0;border:0;box-shadow:none;background:transparent}
+#chatPage #notesChatMessages{max-height:min(52vh,520px);min-height:260px;padding:4px}
+</style>
+<script>
+(() => {
+  const landing = document.querySelector('#landing');
+  const notesApp = document.querySelector('#app');
+  const chatPanel = document.querySelector('#notesChatPanel');
+  const chatToggle = document.querySelector('#notesChatToggle');
+  const headerActions = document.querySelector('#app .topbar .actions');
+  if (!landing || !notesApp || !chatPanel || !headerActions || document.querySelector('#chatPage')) return;
+
+  const chatPage = document.createElement('main');
+  chatPage.className = 'app';
+  chatPage.id = 'chatPage';
+  chatPage.innerHTML = '<header class="topbar"><div><div class="brand">SquigglyBot</div><div class="eyebrow">Ask about your active note</div></div><div class="actions"><button class="btn" id="chatOpenNotes">Notes</button><button class="btn" id="chatBack">Back</button></div></header><section class="card chat-card"></section>';
+  const chatCard = chatPage.querySelector('.chat-card');
+  chatPanel.hidden = false;
+  chatCard.append(chatPanel);
+  document.body.append(chatPage);
+
+  const showChat = () => {
+    landing.hidden = true;
+    notesApp.classList.remove('visible');
+    chatPage.classList.add('visible');
+    document.querySelector('#notesChatInput')?.focus();
+  };
+  const showNotes = () => {
+    chatPage.classList.remove('visible');
+    landing.hidden = true;
+    notesApp.classList.add('visible');
+    window.render?.();
+  };
+  const showHome = () => {
+    chatPage.classList.remove('visible');
+    notesApp.classList.remove('visible');
+    landing.hidden = false;
+  };
+
+  const chatButton = document.createElement('button');
+  chatButton.className = 'btn';
+  chatButton.id = 'openChatFromNotes';
+  chatButton.textContent = 'Chat';
+  headerActions.insertBefore(chatButton, headerActions.querySelector('#back'));
+  chatButton.onclick = showChat;
+  if (chatToggle) {
+    chatToggle.textContent = 'Open chat';
+    chatToggle.onclick = showChat;
+  }
+  document.querySelector('#chatOpenNotes').onclick = showNotes;
+  document.querySelector('#chatBack').onclick = showHome;
+  document.querySelector('#openApp').addEventListener('click', () => chatPage.classList.remove('visible'));
+  document.querySelector('#startWriting').addEventListener('click', () => chatPage.classList.remove('visible'));
+  document.querySelector('#back').addEventListener('click', () => chatPage.classList.remove('visible'));
+})();
+</script>
+</body></html>
