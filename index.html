@@ -2671,7 +2671,9 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
 <style>
 #chatPage .chat-card{width:min(1080px,calc(100% - 8px));min-height:calc(100vh - 150px);margin:8px auto 0;padding:30px;display:flex}
 #chatPage #notesChatPanel{position:static!important;width:100%!important;max-width:none;min-height:calc(100vh - 210px);padding:0;border:0;box-shadow:none;background:transparent;display:flex;flex-direction:column}
-#chatPage #notesChatMessages{flex:1;max-height:none;min-height:420px;padding:8px}
+#chatPage #notesChatMessages{flex:0 1 auto;max-height:calc(100vh - 360px);min-height:260px;padding:8px}
+#chatPage #notesChatPanel > .bot-permission{margin:auto 0 12px;padding-top:16px;border-top:1px solid var(--line)}
+#chatPage #notesChatPanel > .bot-permission + div{padding-bottom:8px}
 </style>
 <script>
 (() => {
