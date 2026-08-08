@@ -3005,4 +3005,32 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
   input.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send.click(); } };
   render();
 })();
+</script>
+<style>
+#chatWindowControls{display:flex;align-items:center;gap:6px;margin-left:auto}.chat-window-control{padding:6px 8px;font-size:.74rem}.chat-minimized .chat-card{display:none}.chat-minimized{padding-bottom:0}.chat-minimized .topbar{min-height:58px}.chat-rename{margin-left:2px;padding:6px 8px;font-size:.74rem}
+</style>
+<script>
+(() => {
+  const STORE = 'squiggly-chat-sessions-v1';
+  const chatPage = document.querySelector('#chatPage');
+  const chatPanel = document.querySelector('#notesChatPanel');
+  const tabs = document.querySelector('#chatTabsBar');
+  if (!chatPage || !chatPanel || !tabs || document.querySelector('#chatWindowControls')) return;
+  const read = () => JSON.parse(localStorage.getItem(STORE) || 'null');
+  const save = value => localStorage.setItem(STORE, JSON.stringify(value));
+  const activeChat = () => { const data = read(); return data?.items?.find(item => item.id === data.activeId); };
+  const rename = () => { const chat = activeChat(); if (!chat) return; const title = prompt('Rename chat', chat.title); if (title === null) return; const clean = title.trim().slice(0, 60); if (!clean) return; const data = read(); const item = data.items.find(entry => entry.id === data.activeId); item.title = clean; save(data); const tab = tabs.querySelector('.chat-session-tab.active'); if (tab) { tab.textContent = clean; tab.title = clean; } };
+  const panelHeader = chatPanel.firstElementChild;
+  const renameButton = document.createElement('button'); renameButton.className = 'btn chat-rename'; renameButton.type = 'button'; renameButton.id = 'renameChat'; renameButton.textContent = 'Rename'; renameButton.title = 'Rename current chat'; renameButton.onclick = rename;
+  panelHeader?.append(renameButton);
+  const pageActions = chatPage.querySelector('.topbar .actions');
+  const controls = document.createElement('div'); controls.id = 'chatWindowControls';
+  controls.innerHTML = '<button class="btn chat-window-control" type="button" id="minimizeChat">Minimize</button><button class="btn chat-window-control" type="button" id="fullscreenChat">Fullscreen</button>';
+  pageActions?.prepend(controls);
+  const minimize = controls.querySelector('#minimizeChat');
+  minimize.onclick = () => { const minimized = chatPage.classList.toggle('chat-minimized'); minimize.textContent = minimized ? 'Restore' : 'Minimize'; };
+  const fullscreen = controls.querySelector('#fullscreenChat');
+  fullscreen.onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await chatPage.requestFullscreen(); } catch {} };
+  document.addEventListener('fullscreenchange', () => { fullscreen.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen'; });
+})();
 </script></body></html>
