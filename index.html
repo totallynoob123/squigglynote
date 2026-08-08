@@ -3055,4 +3055,7 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
 </style>
 <script>
 (() => {const panel=document.querySelector('#notesChatPanel');if(!panel||document.querySelector('#panelFullscreen'))return;const button=document.createElement('button');button.className='btn';button.type='button';button.id='panelFullscreen';button.textContent='Fullscreen';button.title='Fit chat to screen';button.onclick=()=>{const active=panel.classList.toggle('chat-panel-fullscreen');button.textContent=active?'Exit fullscreen':'Fullscreen';};panel.firstElementChild?.append(button);})();
-</script></body></html>
+</script>
+<style>
+#notesChatMessages{justify-items:start}#notesChatMessages>div{width:fit-content!important;max-width:min(78%,720px);overflow-wrap:anywhere}#notesChatMessages>div[style*="margin-left"]{justify-self:end;margin-left:0!important}#notesChatMessages>div[style*="margin-right"]{justify-self:start;margin-right:0!important}
+</style></body></html>
