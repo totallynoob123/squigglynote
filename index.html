@@ -3036,4 +3036,17 @@ body.dark .change-line.add{background:#173d23;color:#bff0cc}body.dark .change-li
   fullscreen.onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await chatPage.requestFullscreen(); } catch {} };
   document.addEventListener('fullscreenchange', () => { fullscreen.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen'; });
 })();
+</script>
+<style>
+#chatWindowControls{display:flex;align-items:center;gap:6px;margin-left:auto}.chat-window-control{padding:6px 8px;font-size:.74rem}.chat-minimized .chat-card{display:none}.chat-minimized{padding-bottom:0}.chat-minimized .topbar{min-height:58px}.chat-rename{margin-left:2px;padding:6px 8px;font-size:.74rem}
+</style>
+<script>
+(() => {
+  const STORE='squiggly-chat-sessions-v1';
+  const page=document.querySelector('#chatPage'), panel=document.querySelector('#notesChatPanel'), tabs=document.querySelector('#chatTabsBar');
+  if(!page||!panel||!tabs)return;
+  const rename=()=>{const data=JSON.parse(localStorage.getItem(STORE)||'null');const chat=data?.items?.find(item=>item.id===data.activeId);if(!chat)return;const title=prompt('Rename chat',chat.title);if(title===null)return;const clean=title.trim().slice(0,60);if(!clean)return;chat.title=clean;localStorage.setItem(STORE,JSON.stringify(data));const tab=tabs.querySelector('.chat-session-tab.active');if(tab){tab.textContent=clean;tab.title=clean;}};
+  if(!document.querySelector('#renameChat')){const button=document.createElement('button');button.className='btn chat-rename';button.type='button';button.id='renameChat';button.textContent='Rename';button.title='Rename current chat';button.onclick=rename;panel.firstElementChild?.append(button);}
+  if(!document.querySelector('#chatWindowControls')){const actions=page.querySelector('.topbar .actions');if(!actions)return;const controls=document.createElement('div');controls.id='chatWindowControls';controls.innerHTML='<button class="btn chat-window-control" type="button" id="minimizeChat">Minimize</button><button class="btn chat-window-control" type="button" id="fullscreenChat">Fullscreen</button>';actions.prepend(controls);const minimize=controls.querySelector('#minimizeChat'),fullscreen=controls.querySelector('#fullscreenChat');minimize.onclick=()=>{const minimized=page.classList.toggle('chat-minimized');minimize.textContent=minimized?'Restore':'Minimize';};fullscreen.onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await page.requestFullscreen();}catch{}};document.addEventListener('fullscreenchange',()=>{fullscreen.textContent=document.fullscreenElement?'Exit fullscreen':'Fullscreen';});}
+})();
 </script></body></html>
