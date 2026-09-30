@@ -1,5 +1,7 @@
 (() => {
-  const monitorUrl = 'https://atreyap31-cell.github.io/Squigglynote-tester/';
+  // The monitor talks to the same server as this site.
+  const monitorUrl =
+    'https://atreyap31-cell.github.io/Squigglynote-tester/?api=' + encodeURIComponent(window.SQUIGGLY_API);
   const open = () => {
     let dialog = document.querySelector('#monitorDialog');
     if (!dialog) {

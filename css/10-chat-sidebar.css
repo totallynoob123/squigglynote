@@ -1,6 +1,7 @@
 #notesChatPanel.squigglybot-sidebar {
   position: fixed !important;
-  z-index: 1200;
+  /* !important: 07-chat-panel.js sets an inline z-index:10, which let the API test button cover Send. */
+  z-index: 1200 !important;
   display: flex;
   flex-direction: column;
   width: 390px;

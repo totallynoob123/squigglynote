@@ -106,6 +106,7 @@
       recordings.forEach((recording, index) => {
         const row = document.createElement('button');
         row.className = 'tab';
+        row.dataset.recordingId = recording.id;
         row.style.background = audioSelection.has(recording.id) ? 'var(--soft)' : '';
         row.style.boxShadow = audioSelection.has(recording.id) ? 'inset 3px 0 var(--ink)' : '';
         row.textContent = recording.name + ' · ' + new Date(recording.created).toLocaleString();
@@ -260,6 +261,7 @@
       status.textContent = 'WAV recording saved to Audio.';
       status.className = 'status good';
       await refreshRecordings();
+      if (activePane === 'audio') render();
       return;
     }
     try {
@@ -338,6 +340,9 @@
   transcribeAction.textContent = 'Transcribe audio';
   transcribeAction.onclick = transcribeSelected;
   document.querySelector('.notes-actions').append(transcribeAction);
+  // Other features (import, read aloud) add recordings straight to IndexedDB; they call this
+  // so the list picks them up without a reload.
+  window.refreshAudioLibrary = () => refreshRecordings().then(() => render());
   refreshRecordings().then(() => render());
 })();
 
@@ -389,7 +394,7 @@
     if (!isAudioPane()) return;
     const buttons = Array.from(tabs.querySelectorAll(':scope > .tab:not([data-audio-ready])'));
     buttons.forEach((button, index) => {
-      const file = files[index];
+      const file = files.find(item => item.id === button.dataset.recordingId) || files[index];
       if (!file) return;
       button.dataset.audioReady = 'true';
       button.dataset.audioId = file.id;

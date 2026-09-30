@@ -90,6 +90,7 @@
           }),
         );
         transaction.oncomplete = () => {
+          window.refreshAudioLibrary?.();
           showFeedback(
             'Audio imported',
             files.length + ' WAV file' + (files.length === 1 ? ' was' : 's were') + ' added to Audio.',

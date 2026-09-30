@@ -1,5 +1,5 @@
 (() => {
-  const TUNNEL_BASE = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const TUNNEL_BASE = window.SQUIGGLY_API;
   const dialog = document.querySelector('#apiTestDialog');
   const routes = document.querySelector('#apiRoutes');
   if (!dialog || !routes) return;

@@ -1,5 +1,5 @@
 (() => {
-  const endpoint = 'https://absolve-marigold-procedure.ngrok-free.dev/chat';
+  const endpoint = window.SQUIGGLY_API + '/chat';
   const request = async (message, notes) => {
     const response = await fetch(endpoint, {
       method: 'POST',

@@ -1,6 +1,6 @@
 (() => {
   // Replace MY_NGROK_URL with the public hostname shown by ngrok.
-  const API_BASE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const API_BASE_URL = window.SQUIGGLY_API;
   const API_URL = API_BASE_URL + '/rewrite';
 
   document.body.insertAdjacentHTML(
@@ -53,7 +53,7 @@
 })();
 
 (() => {
-  const TUNNEL_REWRITE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev/rewrite';
+  const TUNNEL_REWRITE_URL = window.SQUIGGLY_API + '/rewrite';
   const OPENAI_KEY_STORAGE = 'squiggly-openai-key-session';
   const tunnelInput = document.querySelector('#apiTunnel');
   if (!tunnelInput.value.trim()) {
@@ -240,7 +240,7 @@ window.transcribeWithFallback = async formData => {
 
 (() => {
   // Jetson API contract: POST /rewrite => { content }, POST /transcribe with form field "audio".
-  const JETSON_API_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const JETSON_API_URL = window.SQUIGGLY_API;
   const DEEPGRAM_KEY_STORAGE = 'squiggly-deepgram-key-session';
   const status = document.querySelector('#status');
   const setStatus = (message, error = false) => {
@@ -392,7 +392,7 @@ window.transcribeWithFallback = async formData => {
 })();
 
 (() => {
-  const API_BASE = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const API_BASE = window.SQUIGGLY_API;
   const status = document.querySelector('#status');
   const report = (message, error = false) => {
     status.textContent = message;

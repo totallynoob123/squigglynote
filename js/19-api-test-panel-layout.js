@@ -39,9 +39,9 @@
   const log = document.querySelector('#apiRequestLog');
   if (routes) {
     routes.innerHTML =
-      '<div>Primary · Rewrite&nbsp;&nbsp;&nbsp; POST https://absolve-marigold-procedure.ngrok-free.dev/rewrite</div>' +
-      '<div>Primary · Chat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; POST https://absolve-marigold-procedure.ngrok-free.dev/chat</div>' +
-      '<div>Primary · Transcribe POST https://absolve-marigold-procedure.ngrok-free.dev/transcribe</div>' +
+      '<div>Primary · Rewrite&nbsp;&nbsp;&nbsp; POST ' + window.SQUIGGLY_API + '/rewrite</div>' +
+      '<div>Primary · Chat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; POST ' + window.SQUIGGLY_API + '/chat</div>' +
+      '<div>Primary · Transcribe POST ' + window.SQUIGGLY_API + '/transcribe</div>' +
       '<div style="margin-top:6px;color:var(--muted)">Fallback · Concise/chat&nbsp; POST https://api.openai.com/v1/chat/completions (only after Jetson fails)</div>' +
       '<div style="color:var(--muted)">Fallback · Audio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; POST https://api.deepgram.com/v1/listen (only after Jetson fails)</div>';
   }

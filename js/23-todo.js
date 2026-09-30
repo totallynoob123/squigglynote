@@ -63,7 +63,7 @@
     render();
   };
   const requestTasks = async text => {
-    const response = await fetch('https://absolve-marigold-procedure.ngrok-free.dev/chat', {
+    const response = await fetch(window.SQUIGGLY_API + '/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -126,7 +126,7 @@
     try {
       const form = new FormData();
       form.append('audio', file);
-      const response = await fetch('https://absolve-marigold-procedure.ngrok-free.dev/transcribe', {
+      const response = await fetch(window.SQUIGGLY_API + '/transcribe', {
         method: 'POST',
         body: form,
       });
@@ -153,7 +153,7 @@
     reply.textContent = 'Thinking…';
     try {
       const list = tasks.map((task, index) => (task.done ? '[done] ' : '') + (index + 1) + '. ' + task.text).join('\n');
-      const response = await fetch('https://absolve-marigold-procedure.ngrok-free.dev/chat', {
+      const response = await fetch(window.SQUIGGLY_API + '/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

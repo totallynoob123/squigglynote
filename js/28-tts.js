@@ -22,7 +22,7 @@
     if (entered) {
       return window.resolveApiTunnel(entered, 'tts');
     }
-    return 'https://absolve-marigold-procedure.ngrok-free.dev/tts';
+    return window.SQUIGGLY_API + '/tts';
   };
   button.onclick = () => {
     status.textContent = '';

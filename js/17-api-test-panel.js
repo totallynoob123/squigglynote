@@ -1,5 +1,5 @@
 (() => {
-  const TUNNEL_BASE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const TUNNEL_BASE_URL = window.SQUIGGLY_API;
   const requests = [];
   const header = document.querySelector('.workspace-head');
   const button = document.createElement('button');

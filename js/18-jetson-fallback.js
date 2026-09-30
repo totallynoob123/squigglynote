@@ -1,5 +1,5 @@
 (() => {
-  const JETSON_BASE_URL = 'https://absolve-marigold-procedure.ngrok-free.dev';
+  const JETSON_BASE_URL = window.SQUIGGLY_API;
   const getOpenAIKey = () => sessionStorage.getItem('squiggly-openai-key-session')?.trim();
   const openAIChat = async (system, user) => {
     const key = getOpenAIKey();

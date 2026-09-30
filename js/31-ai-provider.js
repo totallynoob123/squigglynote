@@ -2,7 +2,6 @@
   const OPENROUTER_KEY = 'squiggly-openrouter-key-v1';
   const PROVIDER_KEY = 'squiggly-ai-provider-v1';
   const CHAT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
-  const TTS_MODEL = 'fish-audio/s2.1-pro-free:free';
   const getMode = () =>
     localStorage.getItem(PROVIDER_KEY) || (localStorage.getItem(OPENROUTER_KEY) ? 'openrouter' : 'tunnel');
   const setMode = value => localStorage.setItem(PROVIDER_KEY, value);
@@ -154,56 +153,56 @@
     };
   }
 
+  // Read aloud always uses the Squiggly server's Kokoro voices, whichever AI provider is
+  // chosen: OpenRouter has no free speech model. If the server can't be reached, the
+  // browser's built-in voice reads the note instead, so the button always does something.
+  const speakInBrowser = (text, voice) =>
+    new Promise((resolve, reject) => {
+      if (!('speechSynthesis' in window)) return reject(new Error('This browser cannot read aloud.'));
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = voice.startsWith('b') ? 'en-GB' : 'en-US';
+      utterance.onend = resolve;
+      utterance.onerror = event => reject(new Error('Browser speech failed: ' + event.error));
+      speechSynthesis.speak(utterance);
+    });
+  document.querySelector('#closeTts')?.addEventListener('click', () => window.speechSynthesis?.cancel());
+
   const tts = document.querySelector('#generateTts');
   if (tts)
-    tts.onclick = async event => {
+    tts.onclick = async () => {
       const text = document.querySelector('#editor').innerText.trim();
       const status = document.querySelector('#ttsStatus');
+      const player = document.querySelector('#ttsPlayer');
+      const voice = document.querySelector('#ttsVoice')?.value || '';
       if (!text) {
         status.textContent = 'Write something in the note first.';
         status.className = 'status error';
         return;
       }
-      const preferOpenRouter = getMode() === 'openrouter';
-      const useOpenRouter = preferOpenRouter && !!localStorage.getItem(OPENROUTER_KEY);
-      const tunnel = endpointFor('tts');
-      if (!useOpenRouter && !tunnel) {
-        status.textContent = preferOpenRouter
-          ? 'Add an OpenRouter key or switch to the API tunnel in Settings.'
-          : 'Add an API tunnel URL first.';
-        status.className = 'status error';
-        if (preferOpenRouter) openSetup();
-        return;
-      }
-      event.currentTarget.disabled = true;
+      tts.disabled = true;
       status.textContent = 'Generating speech…';
       status.className = 'status';
       try {
         let blob;
-        if (useOpenRouter) {
-          const data = await openRouter({
-            model: TTS_MODEL,
-            messages: [{ role: 'user', content: text }],
-            modalities: ['text', 'audio'],
-            audio: { voice: document.querySelector('#ttsVoice')?.value || 'alloy', format: 'wav' },
-            ...options(),
-          });
-          const audio = data.choices?.[0]?.message?.audio || data.audio;
-          const encoded = audio?.data || audio?.base64;
-          if (!encoded) throw new Error('The speech model did not return audio.');
-          blob = new Blob([Uint8Array.from(atob(encoded), char => char.charCodeAt(0))], {
-            type: 'audio/' + (audio.format || 'wav'),
-          });
-        } else {
-          const response = await fetch(tunnel, {
+        try {
+          const response = await fetch(endpointFor('tts') || window.SQUIGGLY_API + '/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, voice: document.querySelector('#ttsVoice')?.value }),
+            body: JSON.stringify({ text, voice }),
           });
-          if (!response.ok) throw new Error('The API tunnel returned HTTP ' + response.status + '.');
+          if (!response.ok) throw new Error('The Squiggly server returned HTTP ' + response.status + '.');
           blob = await response.blob();
+        } catch (serverError) {
+          console.warn('Server speech failed; using the browser voice.', serverError);
+          player.style.display = 'none';
+          status.textContent = 'The Squiggly server is unavailable, so your browser is reading the note aloud…';
+          await speakInBrowser(text, voice);
+          status.textContent = "Finished (read with your browser's voice; the server was unavailable).";
+          status.className = 'status good';
+          return;
         }
-        const player = document.querySelector('#ttsPlayer');
+        if (player.src.startsWith('blob:')) URL.revokeObjectURL(player.src);
         player.src = URL.createObjectURL(blob);
         player.style.display = 'block';
         await player.play();
@@ -213,7 +212,7 @@
         status.textContent = error.message;
         status.className = 'status error';
       } finally {
-        event.currentTarget.disabled = false;
+        tts.disabled = false;
       }
     };
 })();
