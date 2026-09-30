@@ -1,0 +1,27 @@
+#monitorDialog {
+  width: min(1100px, calc(100% - 24px));
+  height: min(820px, calc(100vh - 36px));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+}
+#monitorDialog::backdrop {
+  background: #0009;
+}
+#monitorDialog .monitor-head {
+  height: 54px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+#monitorDialog iframe {
+  width: 100%;
+  height: calc(100% - 54px);
+  border: 0;
+  background: #f5f7f3;
+}

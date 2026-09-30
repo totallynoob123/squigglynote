@@ -1,0 +1,9 @@
+body.dyslexic,
+body.dyslexic button,
+body.dyslexic input,
+body.dyslexic select,
+body.dyslexic .editor {
+  font-family: OpenDyslexic, Arial, sans-serif !important;
+  letter-spacing: 0.02em;
+  line-height: 1.75;
+}

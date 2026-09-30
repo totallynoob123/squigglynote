@@ -1,0 +1,51 @@
+.bot-permission {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+.change-preview {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  font:
+    12px/1.45 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
+.change-preview header {
+  padding: 8px 10px;
+  background: var(--soft);
+  font:
+    700 0.72rem Inter,
+    system-ui,
+    sans-serif;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.change-line {
+  padding: 3px 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.change-line.add {
+  background: #dff5e5;
+  color: #174d28;
+}
+.change-line.remove {
+  background: #fde2e1;
+  color: #7e2020;
+}
+body.dark .change-line.add {
+  background: #173d23;
+  color: #bff0cc;
+}
+body.dark .change-line.remove {
+  background: #4b2222;
+  color: #ffd0cf;
+}
