@@ -2,7 +2,7 @@
 // reached through its ngrok tunnel. Change it here and everything else follows.
 // For testing, ?api=http://127.0.0.1:8787 in the page URL overrides it for that visit.
 window.SQUIGGLY_API = (
-  new URLSearchParams(location.search).get('api') || 'https://absolve-marigold-procedure.ngrok-free.dev'
+  new URLSearchParams(location.search).get('api') || 'https://football-wielder-skipping.ngrok-free.dev'
 ).replace(/\/+$/, '');
 
 (() => {

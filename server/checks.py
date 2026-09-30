@@ -48,6 +48,7 @@ class Suite:
         self.page_errors: list[str] = []
         self.site_up = False
         self.server_ok = False
+        self.tunnel_error = ""
         page.on("pageerror", lambda error: self.page_errors.append(str(error)))
 
     # ------------------------------------------------------------------ helpers
@@ -280,18 +281,17 @@ class Suite:
             raise Failed(f"The Ollama model {local['ollama']['model']} is not installed.")
         if not self.public_api:
             raise Failed("The ngrok tunnel is not running, so the site cannot reach the server.")
-        try:
-            public = httpx.get(self.public_api + "/health", timeout=20,
-                               headers={"ngrok-skip-browser-warning": "true"})
-            public.raise_for_status()
-            public.json()
-        except Exception as exc:  # noqa: BLE001
-            raise Failed(f"The tunnel {self.public_api} did not reach the server: {exc}") from exc
         site_api = self.page.evaluate("window.SQUIGGLY_API || ''")
         self.server_ok = True
         if site_api and site_api.rstrip("/") != self.public_api.rstrip("/"):
             raise Failed(f"The site points at {site_api}, but the tunnel is {self.public_api}. "
                          "Update js/00-config.js.")
+        if self.tunnel_error:
+            # ngrok says the tunnel is up, but this PC cannot reach it; the browser
+            # checks after this one talk to the server directly instead.
+            raise Blocked(f"ngrok reports {self.public_api} online, but this PC's network cannot reach it "
+                          f"({self.tunnel_error}). People on other networks are unaffected; the AI checks "
+                          "below use the server directly.")
         return f"Tunnel {self.public_api} reaches the server; Ollama {local['ollama']['model']} is ready."
 
     def check_chat_ai(self) -> str:
@@ -422,6 +422,23 @@ CHECKS = [
 ]
 
 
+def tunnel_problem(public_api: str | None) -> str:
+    """Empty if the public tunnel answers from here, otherwise why not."""
+    if not public_api:
+        return ""
+    try:
+        response = httpx.get(public_api + "/health", timeout=15, headers={"ngrok-skip-browser-warning": "true"})
+        response.raise_for_status()
+        response.json()
+        return ""
+    except httpx.ConnectError as exc:
+        if "WRONG_VERSION_NUMBER" in str(exc):
+            return "a web filter is intercepting ngrok"
+        return str(exc)[:150]
+    except Exception as exc:  # noqa: BLE001
+        return str(exc)[:150]
+
+
 def pending_results() -> list[dict]:
     return [{"id": cid, "name": name, "detail": detail, "status": "PENDING", "message": "",
              "time": None, "duration": None, "evidence": None} for cid, name, detail, _ in CHECKS]
@@ -442,6 +459,15 @@ def run_suite(site_url: str, public_api: str | None, local_api: str, evidence_di
         context.set_default_timeout(20_000)
         page = context.new_page()
         suite = Suite(page, site_url, public_api, local_api, evidence_dir, run_id, speech_wav)
+        suite.tunnel_error = tunnel_problem(public_api)
+        if public_api and suite.tunnel_error:
+            # The tunnel only forwards to this server anyway, so send the test browser's
+            # requests to it directly; the site and server still get tested end to end.
+            def to_local(route):
+                url = local_api + route.request.url[len(public_api):]
+                route.fulfill(response=route.fetch(url=url))
+
+            context.route(public_api + "/**", to_local)
         for result, (_, _, _, method) in zip(results, CHECKS):
             result["status"] = "RUNNING"
             on_progress(results)
