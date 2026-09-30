@@ -1,0 +1,41 @@
+#todoPage .todo-card {
+  width: min(820px, 100%);
+  margin: 8px auto 0;
+  padding: 24px;
+}
+#todoPage #todoItems {
+  max-height: 330px;
+  overflow: auto;
+}
+
+#todoPage input,
+#todoPage textarea {
+  font: inherit;
+  font-size: 0.9rem;
+}
+#todoPage textarea {
+  line-height: 1.55;
+}
+#todoPage .todo-item {
+  background: var(--paper);
+}
+#todoPage .todo-item input[type='text'] {
+  font: inherit;
+  font-size: 0.9rem;
+}
+#todoPage .todo-item input[type='text'] {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  padding: 9px;
+  outline: 0;
+}
+#todoPage #todoItems {
+  margin: 18px 0 22px;
+  gap: 10px;
+}
+#todoPage .todo-item {
+  padding: 10px;
+  gap: 10px;
+}

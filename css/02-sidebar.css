@@ -1,0 +1,33 @@
+#tabs {
+  gap: 8px;
+}
+#tabs > .tab {
+  padding: 11px 10px;
+  border: 1px solid transparent;
+  line-height: 1.25;
+}
+#tabs > .tab:hover {
+  border-color: var(--line);
+}
+.audio-library-row {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+  margin: 5px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.audio-library-row .tab {
+  margin: 0;
+  padding: 3px 0 !important;
+}
+.audio-library-row audio {
+  width: 100%;
+  height: 32px;
+}
+
+body.notes-pane .audio-library-row,
+body.notes-pane #tabs audio {
+  display: none !important;
+}

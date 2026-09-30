@@ -1,0 +1,90 @@
+#aiSettings {
+  display: grid;
+  gap: 14px;
+  margin: 4px 0 8px;
+}
+.ai-setting {
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+.ai-setting label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+.ai-setting small {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 5px;
+}
+.ai-setting output {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.ai-setting input[type='range'] {
+  width: 100%;
+  margin: 12px 0 0;
+  accent-color: var(--ink);
+}
+.openrouter-key-row {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.openrouter-key-row .key-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+.openrouter-key-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  padding: 9px;
+  font-size: 0.78rem;
+  outline: 0;
+}
+.openrouter-key-row .btn {
+  padding: 8px 10px;
+  font-size: 0.76rem;
+}
+.onboarding-link {
+  color: var(--ink);
+  font-weight: 700;
+}
+.onboarding-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 10px;
+}
+
+#providerSetting .provider-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 11px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--soft);
+}
+#providerSetting .provider-toggle span {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+#providerSetting .provider-toggle input {
+  width: 42px;
+  height: 22px;
+  accent-color: var(--ink);
+}

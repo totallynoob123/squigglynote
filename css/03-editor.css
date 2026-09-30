@@ -1,0 +1,21 @@
+.toolbar .btn {
+  background: var(--paper);
+}
+.toolbar .btn:hover {
+  background: var(--bg);
+}
+.toolbar input[type='color'] {
+  background: var(--paper) !important;
+}
+.editor {
+  padding-top: 22px;
+}
+.title {
+  margin-bottom: 0;
+}
+
+.toolbar .btn.primary {
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+  border-color: var(--ink) !important;
+}

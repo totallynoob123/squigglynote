@@ -1,0 +1,69 @@
+#notesChatPanel.squigglybot-sidebar {
+  position: fixed !important;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  width: 390px;
+  height: 560px;
+  min-width: 300px;
+  min-height: 300px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  padding: 14px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px;
+  background: var(--paper) !important;
+  box-shadow: 0 18px 55px #0004 !important;
+  resize: both;
+  overflow: hidden;
+  touch-action: none;
+}
+#notesChatPanel.squigglybot-sidebar[hidden] {
+  display: none !important;
+}
+#notesChatPanel.squigglybot-sidebar .squigglybot-handle {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+#notesChatPanel.squigglybot-sidebar.dragging .squigglybot-handle {
+  cursor: grabbing;
+}
+#notesChatPanel.squigglybot-sidebar #notesChatMessages {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  overflow: auto;
+  margin: 12px 0;
+}
+#notesChatPanel.squigglybot-sidebar > .bot-permission {
+  margin: 0 0 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+#notesChatPanel.squigglybot-sidebar > .bot-permission + div {
+  padding-bottom: 0;
+}
+#chatSnapPreview {
+  position: fixed;
+  z-index: 1199;
+  border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--paper) 55%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+#chatSnapPreview.visible {
+  opacity: 1;
+}
+@media (max-width: 640px) {
+  #notesChatPanel.squigglybot-sidebar {
+    left: 12px !important;
+    right: auto !important;
+    top: 12px !important;
+    width: calc(100vw - 24px) !important;
+    height: min(620px, calc(100vh - 24px)) !important;
+  }
+}
