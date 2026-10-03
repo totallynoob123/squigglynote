@@ -1,12 +1,20 @@
-# Starts the Squiggly Note server and its ngrok tunnel.
-#   .\start.ps1
-# Needs: Ollama running with gemma3:12b, the venv from README.md, and ngrok signed in once
-# (ngrok config add-authtoken <token>).
+# Starts the Squiggly Note server, its ngrok tunnel, and Ollama if it isn't running.
+#   .\start.ps1               in this window, with output on screen
+#   .\start.ps1 -Background   hidden, logging to data\server.log (used at Windows sign-in)
+# Needs: the venv from README.md, and ngrok signed in once (ngrok config add-authtoken <token>).
+param([switch]$Background)
 
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $python = 'T:\squigglynote-venv\Scripts\python.exe'
-if (-not (Test-Path $python)) { Write-Error 'The venv is missing - see server\README.md, Setup.'; exit 1 }
+$log = "$here\data\server.log"
+New-Item -ItemType Directory -Force "$here\data" | Out-Null
+
+function Say($text, $color = 'Gray') {
+    if ($Background) { Add-Content $log "$(Get-Date -Format s)  $text" } else { Write-Host $text -ForegroundColor $color }
+}
+
+if (-not (Test-Path $python)) { Say 'The venv is missing - see server\README.md, Setup.' Red; exit 1 }
 
 # Settings from .env that this script needs too.
 $port = '8787'; $domain = ''
@@ -17,36 +25,63 @@ if (Test-Path "$here\.env") {
     }
 }
 
+# Already running (for example, started by hand before the sign-in task fired)?
+try { Invoke-RestMethod "http://127.0.0.1:$port/health" -TimeoutSec 3 | Out-Null; Say "The server is already running on port $port."; exit 0 } catch {}
+
+# Ollama answers SquigglyBot; it does not always come back after a restart.
+try { Invoke-RestMethod http://127.0.0.1:11434/api/tags -TimeoutSec 3 | Out-Null } catch {
+    $ollama = "$env:LOCALAPPDATA\Programs\Ollama\ollama app.exe"
+    if (Test-Path $ollama) {
+        Say 'Starting Ollama...'
+        Start-Process $ollama
+        foreach ($i in 1..60) {
+            try { Invoke-RestMethod http://127.0.0.1:11434/api/tags -TimeoutSec 2 | Out-Null; break } catch { Start-Sleep 1 }
+        }
+    } else {
+        Say 'Ollama is not installed where expected; SquigglyBot will not answer until it runs.' Yellow
+    }
+}
+
 $env:PLAYWRIGHT_BROWSERS_PATH = 'T:\ms-playwright'
 $env:HF_HOME = 'T:\squigglynote-cache\hf'
 $env:PYTHONUNBUFFERED = '1'
 
-# ngrok runs in its own window so its status screen stays readable.
 & ngrok config check *> $null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host 'ngrok is not signed in. Run this once, with the token from https://dashboard.ngrok.com/get-started/your-authtoken :' -ForegroundColor Yellow
-    Write-Host '    ngrok config add-authtoken <your token>' -ForegroundColor Yellow
-    Write-Host 'Starting the server without a tunnel.' -ForegroundColor Yellow
+    Say 'ngrok is not signed in. Run once: ngrok config add-authtoken <token from https://dashboard.ngrok.com/get-started/your-authtoken>' Yellow
+    Say 'Starting the server without a tunnel.' Yellow
 } elseif (-not (Get-Process ngrok -ErrorAction SilentlyContinue)) {
-    $ngrokArgs = @('http', $port)
+    $ngrokArgs = @('http', $port, '--log=stdout')
     if ($domain) { $ngrokArgs += "--url=$domain" }
-    Start-Process ngrok -ArgumentList $ngrokArgs -WindowStyle Minimized
-    Start-Sleep -Seconds 3
+    # Hidden at sign-in; otherwise its own minimized window keeps its status screen readable.
+    $style = if ($Background) { 'Hidden' } else { 'Minimized' }
+    Start-Process ngrok -ArgumentList $ngrokArgs -WindowStyle $style
 }
 
-try {
-    $tunnel = (Invoke-RestMethod http://127.0.0.1:4040/api/tunnels).tunnels |
-        Where-Object { $_.public_url -like 'https://*' } | Select-Object -First 1
-    if ($tunnel) {
-        Write-Host "`n  Public address: $($tunnel.public_url)" -ForegroundColor Green
-        $config = Get-Content "$here\..\js\00-config.js" -Raw
-        if ($config -notlike "*$($tunnel.public_url)*") {
-            Write-Host "  js\00-config.js points somewhere else - set it to this address and push the site." -ForegroundColor Yellow
-        }
+# ngrok can take a while when the network is still coming up after boot.
+$tunnel = $null
+foreach ($i in 1..30) {
+    try {
+        $tunnel = (Invoke-RestMethod http://127.0.0.1:4040/api/tunnels -TimeoutSec 2).tunnels |
+            Where-Object { $_.public_url -like 'https://*' } | Select-Object -First 1
+    } catch {}
+    if ($tunnel) { break }
+    Start-Sleep 2
+}
+if ($tunnel) {
+    Say "Public address: $($tunnel.public_url)" Green
+    if ((Get-Content "$here\..\js\00-config.js" -Raw) -notlike "*$($tunnel.public_url)*") {
+        Say 'js\00-config.js points somewhere else - set it to this address and push the site.' Yellow
     }
-} catch {
-    Write-Host '  ngrok did not start; see its window for the reason.' -ForegroundColor Yellow
+} else {
+    Say 'ngrok did not start a tunnel; the site cannot reach this server until it does.' Yellow
 }
 
 Set-Location $here
-& $python app.py
+if ($Background) {
+    Say 'Starting the server.'
+    # cmd does the redirection: PowerShell 5.1 turns a program's stderr (where uvicorn logs) into errors.
+    cmd /c "`"$python`" app.py >> `"$log`" 2>&1"
+} else {
+    & $python app.py
+}
