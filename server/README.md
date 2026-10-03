@@ -25,6 +25,19 @@ Ollama must be running (it normally starts with Windows).
 
 The first request after a restart is slower while `gemma3:12b` loads into VRAM.
 
+### Starting automatically
+
+```powershell
+.\install-autostart.ps1              # start 30 s after you sign in to Windows
+.\install-autostart.ps1 -Uninstall   # stop doing that
+```
+
+This registers a Task Scheduler task, "Squiggly Note server", that runs
+`start.ps1 -Background`: Ollama, ngrok and the server all start hidden, and the
+server writes its output to `data\server.log`. It runs when you *sign in*, so
+the PC needs to reach the desktop after a restart (set Windows to sign in
+automatically if nobody does that). It also stops if the PC sleeps.
+
 ## The monitor
 
 Every two hours, and whenever someone presses **Run test now**, the server opens
