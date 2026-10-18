@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/11-ai-settings.css">
   <link rel="stylesheet" href="css/12-chat.css">
   <link rel="stylesheet" href="css/13-monitor.css">
+  <link rel="stylesheet" href="css/14-accounts.css">
 </head>
 <body>
 
@@ -172,15 +173,37 @@
 </dialog>
 
 <dialog class="dialog" id="accountDialog">
-  <h2>Sign in</h2>
-  <p>Use your email to personalize this workspace.</p>
-  <div style="display:grid;place-items:center;margin:18px 0 14px" id="googleSignIn"></div>
-  <div class="eyebrow" style="text-align:center;margin:12px 0">or use email</div>
-  <label for="accountEmail" class="eyebrow">Email address</label><input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);padding:10px;outline:0">
-  <div class="dialog-actions">
-    <button class="btn" id="cancelAccount">Cancel</button>
-    <button class="btn primary" id="saveAccount">Continue</button>
-  </div>
+  <section id="accountSignedOut">
+    <h2 id="accountHeading">Sign in</h2>
+    <p id="accountIntro">Sign in to keep your notes, to-dos, chats, settings and recordings in sync on every computer.</p>
+    <div id="googleSignIn"></div>
+    <div class="eyebrow account-divider">or use email</div>
+    <form id="accountForm" class="account-form">
+      <label class="eyebrow" for="accountName" hidden>Name (optional)</label>
+      <input id="accountName" autocomplete="name" maxlength="60" hidden>
+      <label class="eyebrow" for="accountEmail">Email address</label>
+      <input id="accountEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+      <label class="eyebrow" for="accountPassword">Password</label>
+      <input id="accountPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters">
+      <p class="status error" id="accountError" role="alert"></p>
+      <button type="button" class="account-switch" id="accountModeToggle">New here? Create an account</button>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="cancelAccount">Cancel</button>
+        <button type="submit" class="btn primary" id="saveAccount">Sign in</button>
+      </div>
+    </form>
+  </section>
+  <section id="accountSignedIn" hidden>
+    <h2>Your account</h2>
+    <p>Signed in as <strong id="accountWho"></strong>. Your notes, to-dos, chats, settings and recordings sync to every computer you sign in on.</p>
+    <p class="status" id="accountSyncStatus"></p>
+    <div class="dialog-actions account-actions">
+      <button type="button" class="btn account-danger" id="deleteAccount">Delete account</button>
+      <button type="button" class="btn" id="signOut">Sign out</button>
+      <button type="button" class="btn" id="syncNow">Sync now</button>
+      <button type="button" class="btn primary" id="closeAccount">Done</button>
+    </div>
+  </section>
 </dialog>
 
 <dialog class="dialog" id="feedbackDialog">
@@ -237,5 +260,6 @@
 <script src="js/36-tunnel-fetch-guard.js"></script>
 <script src="js/37-chat-rename.js"></script>
 <script src="js/38-monitor.js"></script>
+<script src="js/39-sync.js"></script>
 </body>
 </html>

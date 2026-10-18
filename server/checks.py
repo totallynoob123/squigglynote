@@ -125,6 +125,9 @@ class Suite:
         broken: list[str] = []
         self.page.on("response", lambda r: broken.append(f"{r.status} {r.url}")
                      if r.status >= 400 and r.url.startswith(origin) and not r.url.endswith("favicon.ico") else None)
+        # A file that never arrives (dropped connection) is not an error response, but the script is still missing.
+        self.page.on("requestfailed", lambda r: broken.append(f"{r.failure} {r.url}")
+                     if r.url.startswith(origin) else None)
         self.open_site()
         if not self.page.is_visible("#openApp"):
             raise Failed("The page loaded but the main controls did not appear.")
@@ -385,6 +388,107 @@ class Suite:
             raise Failed("The imported recording is listed but cannot be played.")
         return f"Recorded from the microphone, imported a WAV and played it back ({duration:.1f}s)."
 
+    @staticmethod
+    def skip_onboarding(page) -> None:
+        # The OpenRouter set-up dialog opens 250 ms after every load for anyone without a key.
+        try:
+            page.wait_for_selector("#openrouterDialog[open]", timeout=3000)
+            page.click("#skipOpenrouter")
+        except Exception:  # noqa: BLE001 - the dialog is optional
+            pass
+
+    def sign_in(self, page, email: str, password: str, create: bool) -> None:
+        page.goto(self.site_url, wait_until="load")
+        self.skip_onboarding(page)
+        page.click("#signIn")
+        page.wait_for_selector("#accountDialog[open]")
+        if create:
+            page.click("#accountModeToggle")
+        page.fill("#accountEmail", email)
+        page.fill("#accountPassword", password)
+        with page.expect_navigation():
+            page.click("#saveAccount")
+        self.skip_onboarding(page)
+        page.wait_for_function("(window.squigglySyncStatus || '') === 'Synced'", timeout=30_000)
+
+    @staticmethod
+    def force_sync(page) -> None:
+        if not page.evaluate("window.squigglySync.now()"):
+            raise Failed("Syncing failed: " + (page.evaluate("window.squigglySyncDetail") or "no details"))
+
+    def check_sync(self) -> str:
+        self.require_server()
+        stamp = datetime.now().strftime("%H%M%S")
+        email, password = f"monitor-{self.run_id}@squiggly.test", "monitor-" + self.run_id
+        title, task = f"Sync note {stamp}", f"Sync task {stamp}"
+        computer_a, computer_b = self.page, self.new_context().new_page()
+        token = ""
+        try:
+            self.sign_in(computer_a, email, password, create=True)
+            token = computer_a.evaluate("JSON.parse(localStorage.getItem('squiggly-account-v1')).token")
+            computer_a.click("#openApp")
+            computer_a.click("#newNote")
+            computer_a.fill("#title", title)
+            computer_a.click("#openTodoFromNotes")
+            computer_a.fill("#todoNewItem", task)
+            computer_a.click("#addTodoItem")
+            computer_a.evaluate("""() => new Promise((resolve, reject) => {
+                const request = indexedDB.open('squiggly-recordings-' + OWNER, 1);
+                request.onupgradeneeded = () => request.result.createObjectStore('recordings', { keyPath: 'id' });
+                request.onsuccess = () => {
+                    const t = request.result.transaction('recordings', 'readwrite');
+                    t.objectStore('recordings').put({ id: 'monitor-rec', name: 'Monitor recording', created: Date.now(),
+                        blob: new Blob([new Uint8Array(2048)], { type: 'audio/wav' }) });
+                    t.oncomplete = resolve; t.onerror = () => reject(t.error);
+                };
+            })""")
+            self.force_sync(computer_a)
+
+            self.sign_in(computer_b, email, password, create=False)
+            found = computer_b.evaluate("""async ([title, task]) => {
+                const notes = JSON.parse(localStorage.getItem('squiggly-workspace-v4-' + OWNER) || '{}').notes || [];
+                const todos = JSON.parse(localStorage.getItem('squiggly-todos-v1-' + OWNER) || '[]');
+                const recording = await new Promise(resolve => {
+                    const request = indexedDB.open('squiggly-recordings-' + OWNER, 1);
+                    request.onsuccess = () => {
+                        const get = request.result.transaction('recordings').objectStore('recordings').get('monitor-rec');
+                        get.onsuccess = () => resolve(!!get.result?.blob?.size);
+                        get.onerror = () => resolve(false);
+                    };
+                    request.onerror = () => resolve(false);
+                });
+                return { note: notes.some(n => n.title === title), task: todos.some(t => t.text === task), recording };
+            }""", [title, task])
+            missing = [what for what, ok in found.items() if not ok]
+            if missing:
+                raise Failed("Signing in on a second computer did not bring over the " + ", ".join(missing) + ".")
+
+            computer_b.click("#openApp")
+            computer_b.locator("#tabs .tab", has_text=title).first.click()
+            computer_b.fill("#title", title + " edited")
+            computer_b.wait_for_timeout(4500)  # sync waits for a pause in typing
+            self.force_sync(computer_b)
+            self.force_sync(computer_a)
+            titles = computer_a.evaluate(
+                "(JSON.parse(localStorage.getItem('squiggly-workspace-v4-' + OWNER) || '{}').notes || []).map(n => n.title)")
+            if title + " edited" not in titles:
+                raise Failed("An edit made on the second computer did not reach the first.")
+            return "A note, a task and a recording synced to a second computer, and an edit synced back."
+        except Exception:
+            # Capture the moment it went wrong; the clean-up below signs out and reloads.
+            for label, page in (("a", computer_a), ("b", computer_b)):
+                try:
+                    page.screenshot(path=str(self.evidence_dir / f"{self.run_id}-sync-{label}.png"))
+                except Exception:  # noqa: BLE001
+                    pass
+            raise
+        finally:
+            computer_b.context.close()
+            if token:
+                httpx.delete(self.local_api + "/auth/account", headers={"Authorization": "Bearer " + token}, timeout=15)
+            computer_a.evaluate("localStorage.removeItem('squiggly-account-v1')")
+            self.open_site()
+
     def check_transcription(self) -> str:
         self.require_server()
         if self.page.locator(".audio-library-row", has_text="monitor-speech").count() == 0:
@@ -419,6 +523,7 @@ CHECKS = [
     ("tts", "Read aloud", "Kokoro text to speech generates and plays audio", "check_tts"),
     ("audio", "Audio recording and library", "Record from a microphone, import a WAV, play it", "check_audio_library"),
     ("transcribe", "Audio transcription", "Whisper transcribes a recording into a note", "check_transcription"),
+    ("sync", "Accounts and sync", "Notes, tasks and recordings sync between two computers", "check_sync"),
 ]
 
 
@@ -455,19 +560,26 @@ def run_suite(site_url: str, public_api: str | None, local_api: str, evidence_di
         browser = playwright.chromium.launch(headless=True, args=[
             "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
             "--autoplay-policy=no-user-gesture-required"])
-        context = browser.new_context(accept_downloads=True, viewport={"width": 1280, "height": 900})
-        context.set_default_timeout(20_000)
-        page = context.new_page()
-        suite = Suite(page, site_url, public_api, local_api, evidence_dir, run_id, speech_wav)
-        suite.tunnel_error = tunnel_problem(public_api)
-        if public_api and suite.tunnel_error:
-            # The tunnel only forwards to this server anyway, so send the test browser's
-            # requests to it directly; the site and server still get tested end to end.
-            def to_local(route):
-                url = local_api + route.request.url[len(public_api):]
-                route.fulfill(response=route.fetch(url=url))
+        tunnel_error = tunnel_problem(public_api)
 
-            context.route(public_api + "/**", to_local)
+        def to_local(route):
+            url = local_api + route.request.url[len(public_api):]
+            route.fulfill(response=route.fetch(url=url))
+
+        def new_context():
+            """A separate browser profile, like a different computer."""
+            context = browser.new_context(accept_downloads=True, viewport={"width": 1280, "height": 900})
+            context.set_default_timeout(20_000)
+            if public_api and tunnel_error:
+                # The tunnel only forwards to this server anyway, so send the test browser's
+                # requests to it directly; the site and server still get tested end to end.
+                context.route(public_api + "/**", to_local)
+            return context
+
+        page = new_context().new_page()
+        suite = Suite(page, site_url, public_api, local_api, evidence_dir, run_id, speech_wav)
+        suite.tunnel_error = tunnel_error
+        suite.new_context = new_context
         for result, (_, _, _, method) in zip(results, CHECKS):
             result["status"] = "RUNNING"
             on_progress(results)

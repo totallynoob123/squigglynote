@@ -18,7 +18,9 @@
   const source = document.querySelector('#todoSource');
   const status = document.querySelector('#todoStatus');
   const key = 'squiggly-todos-v1-' + (typeof OWNER === 'undefined' ? 'guest' : OWNER);
-  let tasks = JSON.parse(localStorage.getItem(key) || '[]');
+  // Ids let sync tell tasks apart when two computers change the list.
+  const withIds = list => list.map(task => (task.id ? task : { ...task, id: crypto.randomUUID() }));
+  let tasks = withIds(JSON.parse(localStorage.getItem(key) || '[]'));
   const save = () => localStorage.setItem(key, JSON.stringify(tasks));
   const render = () => {
     items.replaceChildren(
@@ -58,10 +60,15 @@
       .split(/\r?\n/)
       .map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
       .filter(Boolean);
-    tasks.push(...lines.map(text => ({ text, done: false })));
+    tasks.push(...lines.map(text => ({ id: crypto.randomUUID(), text, done: false })));
     save();
     render();
   };
+  document.addEventListener('squiggly-synced', event => {
+    if (event.detail !== 'todos') return;
+    tasks = withIds(JSON.parse(localStorage.getItem(key) || '[]'));
+    render();
+  });
   const requestTasks = async text => {
     const response = await fetch(window.SQUIGGLY_API + '/chat', {
       method: 'POST',

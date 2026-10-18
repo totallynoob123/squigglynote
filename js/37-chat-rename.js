@@ -1,5 +1,5 @@
 (() => {
-  const STORE = 'squiggly-chat-sessions-v1',
+  const STORE = CHAT_STORE,
     panel = document.querySelector('#notesChatPanel'),
     deleteButton = document.querySelector('#deleteChat');
   if (!panel || !deleteButton || document.querySelector('#renameChat')) return;

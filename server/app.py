@@ -33,11 +33,14 @@ import re  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 
 import httpx  # noqa: E402
-from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile  # noqa: E402
+import json  # noqa: E402
+
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
+import accounts  # noqa: E402
 import ai  # noqa: E402
 import checks  # noqa: E402
 import monitor  # noqa: E402
@@ -65,6 +68,7 @@ watcher = monitor.Monitor(f"http://127.0.0.1:{PORT}", speech_wav)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    accounts.init()
     schedule = asyncio.create_task(watcher.schedule())
     print(f"\n  Squiggly server on http://127.0.0.1:{PORT}")
     print(f"  Monitor admin key (for the Recipients tab): {monitor.admin_key()}\n")
@@ -76,7 +80,7 @@ app = FastAPI(title="Squiggly Note server", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=ALLOWED_ORIGINS,
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 http = httpx.AsyncClient()
@@ -86,6 +90,11 @@ http = httpx.AsyncClient()
 async def http_error(_request, exc: HTTPException):
     # The site shows `detail` in its error messages.
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(accounts.AccountError)
+async def account_error(_request, exc: accounts.AccountError):
+    return JSONResponse(status_code=exc.status, content={"detail": str(exc)})
 
 
 @app.get("/")
@@ -179,6 +188,114 @@ async def tts(body: SpeakIn):
 @app.get("/voices")
 async def voices():
     return {"voices": await asyncio.to_thread(ai.voices), "default": ai.DEFAULT_VOICE}
+
+
+# --------------------------------------------------------------------------- accounts and sync
+def bearer(request: Request) -> str:
+    header = request.headers.get("authorization", "")
+    return header[7:].strip() if header.lower().startswith("bearer ") else ""
+
+
+def signed_in(request: Request) -> dict:
+    user = accounts.session_user(bearer(request))
+    if not user:
+        raise HTTPException(401, "Your session has ended. Sign in again.")
+    return user
+
+
+class SignUpIn(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+
+
+class SignInIn(BaseModel):
+    email: str
+    password: str
+
+
+class GoogleIn(BaseModel):
+    credential: str
+
+
+@app.post("/auth/register")
+async def register(body: SignUpIn, request: Request):
+    token, user = await asyncio.to_thread(accounts.register, body.email, body.password, body.name, client_id(request))
+    return {"token": token, "user": user}
+
+
+@app.post("/auth/login")
+async def login(body: SignInIn, request: Request):
+    token, user = await asyncio.to_thread(accounts.login, body.email, body.password, client_id(request))
+    return {"token": token, "user": user}
+
+
+@app.post("/auth/google")
+async def google_login(body: GoogleIn):
+    token, user = await asyncio.to_thread(accounts.google_login, body.credential)
+    return {"token": token, "user": user}
+
+
+@app.get("/auth/me")
+async def me(request: Request):
+    return {"user": signed_in(request)}
+
+
+@app.post("/auth/logout")
+async def logout(request: Request):
+    accounts.logout(bearer(request))
+    return {"ok": True}
+
+
+@app.delete("/auth/account")
+async def delete_account(request: Request):
+    user = signed_in(request)
+    await asyncio.to_thread(accounts.delete_user, user["id"])
+    return {"ok": True}
+
+
+@app.get("/sync")
+async def sync_all(request: Request):
+    return {"docs": accounts.get_docs(signed_in(request)["id"])}
+
+
+@app.put("/sync/{collection}")
+async def sync_put(collection: str, request: Request):
+    user = signed_in(request)
+    body = await request.json()
+    if not isinstance(body, dict) or not isinstance(body.get("base_version"), int) or "data" not in body:
+        raise HTTPException(400, "Send {base_version, data}.")
+    result = accounts.put_doc(user["id"], collection, body["base_version"], body["data"])
+    # 409: another device saved first; the body carries its copy to merge with.
+    return JSONResponse(result, status_code=200 if result["ok"] else 409)
+
+
+@app.get("/sync/audio")
+async def sync_audio_list(request: Request):
+    return {"recordings": accounts.audio_list(signed_in(request)["id"])}
+
+
+@app.put("/sync/audio/{audio_id}")
+async def sync_audio_put(audio_id: str, request: Request,
+                         meta: str = Form(...), file: UploadFile | None = File(default=None)):
+    user = signed_in(request)
+    try:
+        details = json.loads(meta)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(400, "meta must be JSON") from exc
+    content = await file.read() if file else None
+    return accounts.audio_put(user["id"], audio_id, details, content)
+
+
+@app.get("/sync/audio/{audio_id}/file")
+async def sync_audio_file(audio_id: str, request: Request):
+    return FileResponse(accounts.audio_file(signed_in(request)["id"], audio_id), media_type="application/octet-stream")
+
+
+@app.delete("/sync/audio/{audio_id}")
+async def sync_audio_delete(audio_id: str, request: Request):
+    accounts.audio_delete(signed_in(request)["id"], audio_id)
+    return {"ok": True}
 
 
 # --------------------------------------------------------------------------- monitor

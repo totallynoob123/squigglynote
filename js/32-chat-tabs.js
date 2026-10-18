@@ -1,14 +1,23 @@
 (() => {
-  const STORE = 'squiggly-chat-sessions-v1';
+  const STORE = CHAT_STORE;
   const OPENROUTER_KEY = 'squiggly-openrouter-key-v1';
   const PROVIDER_KEY = 'squiggly-ai-provider-v1';
   const CHAT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
   const blankChat = () => ({ id: uid(), title: 'New chat', messages: [], created: Date.now() });
-  let chats = JSON.parse(localStorage.getItem(STORE) || 'null') || { items: [blankChat()], activeId: null };
-  if (!Array.isArray(chats.items) || !chats.items.length) chats.items = [blankChat()];
-  if (!chats.activeId || !chats.items.some(chat => chat.id === chats.activeId)) chats.activeId = chats.items[0].id;
+  let chats;
+  // Other scripts (sending, renaming, deleting, sync) write the saved chats directly, so re-read
+  // them before every change; working from a stale copy here used to wipe the newest messages.
+  const reload = () => {
+    chats = JSON.parse(localStorage.getItem(STORE) || 'null') || { items: [blankChat()], activeId: null };
+    if (!Array.isArray(chats.items) || !chats.items.length) chats.items = [blankChat()];
+    if (!chats.activeId || !chats.items.some(chat => chat.id === chats.activeId)) chats.activeId = chats.items[0].id;
+  };
+  reload();
   const persist = () => localStorage.setItem(STORE, JSON.stringify(chats));
+  // Sending (34-chat-memory.js) works on the saved chats, so a browser that has never chatted
+  // needs its first empty chat saved, or Send silently does nothing.
+  if (!localStorage.getItem(STORE)) persist();
   const selected = () => chats.items.find(chat => chat.id === chats.activeId) || chats.items[0];
   const panel = document.querySelector('#notesChatPanel');
   const messages = document.querySelector('#notesChatMessages');
@@ -28,6 +37,7 @@
       button.title = chat.title;
       button.textContent = chat.title;
       button.onclick = () => {
+        reload();
         chats.activeId = chat.id;
         persist();
         render();
@@ -41,6 +51,7 @@
     add.setAttribute('aria-label', 'New chat');
     add.textContent = '+';
     add.onclick = () => {
+      reload();
       const chat = blankChat();
       chats.items.push(chat);
       chats.activeId = chat.id;
@@ -76,6 +87,7 @@
     renderMessages();
   };
   const append = (role, text) => {
+    reload();
     const chat = selected();
     chat.messages.push({ role, text, time: Date.now() });
     persist();
@@ -178,5 +190,10 @@
       send.click();
     }
   };
+  document.addEventListener('squiggly-synced', event => {
+    if (event.detail !== 'chats') return;
+    reload();
+    render();
+  });
   render();
 })();

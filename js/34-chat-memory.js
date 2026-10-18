@@ -1,5 +1,5 @@
 (() => {
-  const STORE = 'squiggly-chat-sessions-v1',
+  const STORE = CHAT_STORE,
     OPENROUTER_KEY = 'squiggly-openrouter-key-v1',
     PROVIDER_KEY = 'squiggly-ai-provider-v1',
     MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';

@@ -38,6 +38,29 @@ server writes its output to `data\server.log`. It runs when you *sign in*, so
 the PC needs to reach the desktop after a restart (set Windows to sign in
 automatically if nobody does that). It also stops if the PC sleeps.
 
+## Accounts and sync
+
+People can sign in on the site with an email and password, or with Google. Their
+notes, to-dos, chats, settings and recordings then sync to every computer they
+sign in on. Everything is stored on this PC in `data\` (`accounts.db`, plus
+recordings under `data\audio\`), so **back up `data\` if the notes matter**.
+
+- Passwords are stored as scrypt hashes; sessions as SHA-256 hashes of random
+  tokens. Ten wrong passwords lock that email/connection out for 15 minutes.
+- Each collection has a version number, and the site does a three-way merge
+  when two computers changed it, so neither silently overwrites the other.
+- Signing out removes the account's data from that browser (after a final
+  sync), which is what you want on a school or library computer.
+- Google sign-in only works on origins added to the Google OAuth client
+  (`GOOGLE_CLIENT_ID`), i.e. the GitHub Pages site, not localhost.
+
+| Route | What |
+|---|---|
+| `POST /auth/register`, `/auth/login`, `/auth/google` | Returns `{token, user}` |
+| `POST /auth/logout`, `GET /auth/me`, `DELETE /auth/account` | Need `Authorization: Bearer <token>` |
+| `GET /sync`, `PUT /sync/{notes,todos,chats,prefs}` | `{base_version, data}`; 409 means merge and retry |
+| `/sync/audio[/{id}[/file]]` | List, upload, download and delete recordings |
+
 ## The monitor
 
 Every two hours, and whenever someone presses **Run test now**, the server opens
