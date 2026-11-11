@@ -1,0 +1,49 @@
+#googleSignIn {
+  display: grid;
+  place-items: center;
+  margin: 18px 0 6px;
+  min-height: 44px;
+}
+.account-divider {
+  text-align: center;
+  margin: 12px 0;
+}
+.account-form {
+  display: grid;
+  gap: 6px;
+}
+.account-form label {
+  margin-top: 6px;
+}
+.account-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  padding: 10px;
+  outline: 0;
+}
+.account-form input:focus {
+  border-color: var(--ink);
+}
+.account-form .status {
+  margin: 4px 0 0;
+  min-height: 0;
+}
+.account-switch {
+  justify-self: start;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  padding: 4px 0;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+.account-actions {
+  flex-wrap: wrap;
+}
+.account-danger {
+  margin-right: auto;
+  color: #a33;
+}

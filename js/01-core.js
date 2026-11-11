@@ -12,6 +12,8 @@ const blank = () => ({
 });
 const initial = () => blank();
 const OWNER = ((JSON.parse(localStorage.getItem(ACCOUNT) || 'null') || {}).email || 'guest').toLowerCase();
+// Chats are kept per account; guests keep the original key so their existing chats stay put.
+const CHAT_STORE = 'squiggly-chat-sessions-v1' + (OWNER === 'guest' ? '' : '-' + OWNER);
 let state = JSON.parse(
   localStorage.getItem(KEY + '-' + OWNER) || (OWNER === 'guest' ? localStorage.getItem(KEY) : 'null') || 'null',
 ) || { notes: [initial()], activeId: null };
@@ -37,10 +39,12 @@ function account() {
 }
 function renderIdentity() {
   const a = account();
+  // 39-sync.js keeps window.squigglySyncStatus up to date ("Synced", "Offline", ...).
+  const sync = a && (a.token ? window.squigglySyncStatus || '' : 'not syncing');
   $('#identity').textContent = a ? 'Signed in as ' + a.email : 'Your personal workspace';
-  $('#workspaceIdentity').textContent = a ? 'Signed in as ' + a.email : 'Your workspace';
+  $('#workspaceIdentity').textContent = a ? 'Signed in as ' + a.email + (sync ? ' · ' + sync : '') : 'Your workspace';
   $('#account').textContent = a ? 'Account' : 'Sign in';
-  $('#account').hidden = !!a;
+  $('#signIn').textContent = a ? 'Account' : 'Sign in';
 }
 function render() {
   const n = active();

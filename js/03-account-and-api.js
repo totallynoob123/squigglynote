@@ -1,22 +1,156 @@
 (() => {
   const GOOGLE_CLIENT_ID = '52788138271-h7kenp1gibepd167jcrdodntk7tjrmvp.apps.googleusercontent.com';
   const dialog = document.querySelector('#accountDialog');
-  const completeGoogleSignIn = response => {
+  const form = document.querySelector('#accountForm');
+  const email = document.querySelector('#accountEmail');
+  const password = document.querySelector('#accountPassword');
+  const nameInput = document.querySelector('#accountName');
+  const error = document.querySelector('#accountError');
+  const submit = document.querySelector('#saveAccount');
+  const toggle = document.querySelector('#accountModeToggle');
+  let creating = false;
+
+  const authRequest = async (path, body) => {
+    let response;
     try {
-      const payload = JSON.parse(atob(response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      if (!payload.email) throw new Error('No email returned');
-      localStorage.setItem(
-        ACCOUNT,
-        JSON.stringify({ email: payload.email, name: payload.name || '', picture: payload.picture || '' }),
-      );
-      location.reload();
+      response = await fetch(window.SQUIGGLY_API + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
     } catch {
-      document
-        .querySelector('#accountEmail')
-        .setCustomValidity('Google sign-in could not be completed. Please try again.');
-      document.querySelector('#accountEmail').reportValidity();
+      throw new Error("Can't reach the Squiggly server right now. Try again in a minute.");
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Sign-in failed (HTTP ' + response.status + ').');
+    return data;
+  };
+
+  // The first time an account is used on this computer, the guest notes, to-dos, chats and
+  // recordings already here are copied into it, so they sync instead of being left behind.
+  const adoptGuestData = owner => {
+    if (OWNER !== 'guest' || localStorage.getItem(KEY + '-' + owner)) return;
+    const copy = (from, to) => {
+      const value = localStorage.getItem(from);
+      if (value && !localStorage.getItem(to)) localStorage.setItem(to, value);
+    };
+    copy(localStorage.getItem(KEY + '-guest') ? KEY + '-guest' : KEY, KEY + '-' + owner);
+    copy('squiggly-todos-v1-guest', 'squiggly-todos-v1-' + owner);
+    copy('squiggly-chat-sessions-v1', 'squiggly-chat-sessions-v1-' + owner);
+    localStorage.setItem('squiggly-adopt-guest-audio-' + owner, '1');
+  };
+
+  const finishSignIn = ({ token, user }) => {
+    const owner = user.email.toLowerCase();
+    adoptGuestData(owner);
+    localStorage.setItem(ACCOUNT, JSON.stringify({ email: user.email, name: user.name || '', token }));
+    location.reload();
+  };
+
+  const showError = message => {
+    error.className = 'status error';
+    error.textContent = message;
+  };
+
+  const completeGoogleSignIn = async response => {
+    try {
+      finishSignIn(await authRequest('/auth/google', { credential: response.credential }));
+    } catch (problem) {
+      showError(problem.message);
     }
   };
+
+  const setMode = create => {
+    creating = create;
+    document.querySelector('#accountHeading').textContent = create ? 'Create an account' : 'Sign in';
+    submit.textContent = create ? 'Create account' : 'Sign in';
+    toggle.textContent = create ? 'Already have an account? Sign in' : 'New here? Create an account';
+    password.autocomplete = create ? 'new-password' : 'current-password';
+    nameInput.hidden = !create;
+    nameInput.previousElementSibling.hidden = !create;
+    error.textContent = '';
+  };
+  toggle.onclick = () => setMode(!creating);
+
+  form.onsubmit = async event => {
+    event.preventDefault();
+    error.textContent = '';
+    submit.disabled = true;
+    try {
+      const body = { email: email.value.trim(), password: password.value };
+      if (creating) body.name = nameInput.value.trim();
+      finishSignIn(await authRequest(creating ? '/auth/register' : '/auth/login', body));
+    } catch (problem) {
+      showError(problem.message);
+    } finally {
+      submit.disabled = false;
+    }
+  };
+
+  // Removes an account's notes, to-dos, chats and recordings from this browser
+  // (they stay in the account), so signing out of a shared computer leaves nothing behind.
+  const forgetThisComputer = owner =>
+    new Promise(resolve => {
+      [KEY + '-' + owner, 'squiggly-todos-v1-' + owner, 'squiggly-chat-sessions-v1-' + owner, 'squiggly-audio-synced-' + owner]
+        .concat(Object.keys(localStorage).filter(key => key.startsWith('squiggly-sync-base-' + owner + '-')))
+        .forEach(key => localStorage.removeItem(key));
+      const request = indexedDB.open('squiggly-recordings-' + owner, 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('recordings', { keyPath: 'id' });
+      request.onerror = () => resolve();
+      request.onsuccess = () => {
+        const transaction = request.result.transaction('recordings', 'readwrite');
+        transaction.objectStore('recordings').clear();
+        transaction.oncomplete = transaction.onerror = () => resolve();
+      };
+    });
+
+  const signOut = async keepOnThisComputer => {
+    const session = account();
+    fetch(window.SQUIGGLY_API + '/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + session.token },
+    }).catch(() => {});
+    if (!keepOnThisComputer) await forgetThisComputer(OWNER);
+    localStorage.removeItem(ACCOUNT);
+    location.reload();
+  };
+
+  document.querySelector('#signOut').onclick = async () => {
+    const button = document.querySelector('#signOut');
+    button.disabled = true;
+    document.querySelector('#accountSyncStatus').textContent = 'Saving your latest changes…';
+    const synced = await window.squigglySync?.now();
+    button.disabled = false;
+    if (synced) return signOut(false);
+    openConfirm(
+      'Sign out without syncing?',
+      "Your latest changes couldn't be saved to your account. If you sign out now they stay on this computer only.",
+      () => signOut(true),
+    );
+  };
+
+  document.querySelector('#deleteAccount').onclick = () =>
+    openConfirm(
+      'Delete your account?',
+      'This permanently deletes your account and everything synced to it, from every computer. This cannot be undone.',
+      async () => {
+        const response = await fetch(window.SQUIGGLY_API + '/auth/account', {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + account().token },
+        }).catch(() => null);
+        if (!response?.ok) {
+          showFeedback('Could not delete the account', "The Squiggly server couldn't be reached.", 'Try again in a minute.');
+          return;
+        }
+        await forgetThisComputer(OWNER);
+        localStorage.removeItem(ACCOUNT);
+        location.reload();
+      },
+    );
+
+  document.querySelector('#syncNow').onclick = () => window.squigglySync?.now();
+  document.querySelector('#closeAccount').onclick = () => dialog.close();
+
   window.initGoogleSignIn = () => {
     if (!window.google || !google.accounts?.id) return;
     google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: completeGoogleSignIn });
@@ -29,25 +163,30 @@
     });
   };
   window.addEventListener('load', window.initGoogleSignIn);
-  const email = document.querySelector('#accountEmail');
   const openAccount = () => {
     const saved = account();
-    email.value = saved ? saved.email : '';
+    const signedIn = !!saved?.token;
+    document.querySelector('#accountSignedOut').hidden = signedIn;
+    document.querySelector('#accountSignedIn').hidden = !signedIn;
+    if (signedIn) {
+      document.querySelector('#accountWho').textContent = saved.email;
+      document.querySelector('#accountSyncStatus').textContent = window.squigglySyncDetail || '';
+    } else {
+      setMode(false);
+      email.value = saved?.email || '';
+      password.value = '';
+      // Older versions "signed in" with just an email and no password; those need a real account to sync.
+      if (saved) {
+        error.className = 'status';
+        error.textContent = 'Sign in, or create an account with this email, to start syncing your notes.';
+      }
+    }
     if (!dialog.open) dialog.showModal();
-    email.focus();
+    (signedIn ? document.querySelector('#closeAccount') : email.value ? password : email).focus();
   };
   document.querySelector('#signIn').onclick = openAccount;
   document.querySelector('#account').onclick = openAccount;
   document.querySelector('#cancelAccount').onclick = () => dialog.close();
-  document.querySelector('#saveAccount').onclick = () => {
-    const value = email.value.trim();
-    if (!email.checkValidity()) {
-      email.reportValidity();
-      return;
-    }
-    localStorage.setItem(ACCOUNT, JSON.stringify({ email: value }));
-    location.reload();
-  };
 
   const refreshSettings = () =>
     document
